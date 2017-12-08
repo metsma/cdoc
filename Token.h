@@ -9,8 +9,9 @@ class Token
 {
 public:
 	virtual ~Token();
-	virtual std::vector<uchar> decrypt(const std::vector<uchar> &cert, const std::string &pass, const std::vector<uchar> &data) = 0;
-	virtual std::vector<uchar> derive(const std::vector<uchar> &cert, const std::string &pass, const std::vector<uchar> &publicKey) = 0;
+	virtual std::vector<uchar> cert() const = 0;
+	virtual std::vector<uchar> decrypt(const std::vector<uchar> &data) const = 0;
+	virtual std::vector<uchar> derive(const std::vector<uchar> &publicKey) const = 0;
 protected:
 	Token();
 };
@@ -18,12 +19,12 @@ protected:
 class PKCS11Token: public Token
 {
 public:
-	PKCS11Token(const std::string &path);
+	PKCS11Token(const std::string &path, const std::string &pass);
 	~PKCS11Token();
-	std::vector<uchar> decrypt(const std::vector<uchar> &cert, const std::string &pass, const std::vector<uchar> &data) override;
-	std::vector<uchar> derive(const std::vector<uchar> &cert, const std::string &pass, const std::vector<uchar> &publicKey) override;
+	virtual std::vector<uchar> cert() const override;
+	std::vector<uchar> decrypt(const std::vector<uchar> &data) const override;
+	std::vector<uchar> derive(const std::vector<uchar> &publicKey) const override;
 private:
-	bool login(const std::vector<uchar> &cert, const std::string &pass);
 	class PKCS11TokenPrivate;
 	PKCS11TokenPrivate *d;
 };
@@ -31,10 +32,11 @@ private:
 class PKCS12Token: public Token
 {
 public:
-	PKCS12Token(const std::string &path);
+	PKCS12Token(const std::string &path, const std::string &pass);
 	~PKCS12Token();
-	std::vector<uchar> decrypt(const std::vector<uchar> &cert, const std::string &pass, const std::vector<uchar> &data) override;
-	std::vector<uchar> derive(const std::vector<uchar> &cert, const std::string &pass, const std::vector<uchar> &publicKey) override;
+	virtual std::vector<uchar> cert() const override;
+	std::vector<uchar> decrypt(const std::vector<uchar> &data) const override;
+	std::vector<uchar> derive(const std::vector<uchar> &publicKey) const override;
 private:
 	class PKCS12TokenPrivate;
 	PKCS12TokenPrivate *d;

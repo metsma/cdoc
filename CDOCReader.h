@@ -3,6 +3,7 @@
 #include <string>
 #include <vector>
 
+class Token;
 class CDOCReader
 {
 public:
@@ -23,6 +24,7 @@ public:
 
 	std::vector<Key> keys() const;
 	std::vector<unsigned char> decryptData(const std::vector<unsigned char> &key);
+	std::vector<unsigned char> decryptData(Token *token);
 
 private:
 	class CDOCReaderPrivate;

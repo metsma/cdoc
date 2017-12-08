@@ -4,27 +4,11 @@
 #include "Token.h"
 
 #include <fstream>
+#include <iostream>
 
 int main(int argc, char *argv[])
 {
-	if (argc != 4)
-	{
-		printf("cdoc [encrypt|decrypt] Recipient File");
-		return 0;
-	}
-
-	if(strcmp(argv[1], "decrypt") == 0)
-	{
-		CDOCReader r("cipherText__EC-P256__aes128-gcm__kw-aes128__ECDH-ES__ConcatKDF.xml");
-		PKCS12Token t("EC-P256_SHA256WithECDSA.p12");
-		//PKCS11Token t("/usr/local/lib/opensc-pkcs11.so");
-		CDOCReader::Key k = r.keys().at(0);
-		std::vector<uchar> sharedSecret = t.derive(k.cert, "passwd", k.publicKey); // , "signerEC"
-		std::vector<uchar> derived = Crypto::concatKDF(k.concatDigest, Crypto::keySize(k.method), sharedSecret, k.AlgorithmID, k.PartyUInfo, k.PartyVInfo);
-		std::vector<uchar> transport = Crypto::AESDecWrap(derived, k.cipher);
-		std::vector<unsigned char> data = r.decryptData(transport);
-	}
-	else if(strcmp(argv[1], "encrypt") == 0)
+	if(argc == 4 && strcmp(argv[1], "encrypt") == 0)
 	{
 		std::ifstream f(argv[2]);
 
@@ -35,9 +19,27 @@ int main(int argc, char *argv[])
 		f.read((char*)recipient.data(), recipient.size());
 		f.close();
 
-		CDOCWriter w(argv[2], Crypto::AES256GCM_MTH);
+		CDOCWriter w(argv[3], Crypto::AES256GCM_MTH);
 		w.addRecipient(recipient);
 		w.encryptData("test.txt", {0x30, 0x31, 0x32, 0x33, 0x34});
 	}
+	else if(argc == 6 && strcmp(argv[1], "decrypt") == 0)
+	{
+		std::unique_ptr<Token> token;
+		if (strcmp(argv[2], "pkcs11") == 0)
+			token.reset(new PKCS11Token(argv[3], argv[4]));
+		else if (strcmp(argv[2], "pkcs12") == 0)
+			token.reset(new PKCS12Token(argv[3], argv[4]));
+		CDOCReader r(argv[5]);
+		std::vector<unsigned char> data = r.decryptData(token.get());
+		std::cout << std::string(data.cbegin(), data.cend());
+	}
+	else
+	{
+		printf("cdoc encrypt X509DerRecipientCert OutFile");
+		printf("cdoc decrypt pkcs11 path/to/so pin InFile");
+		printf("cdoc decrypt pkcs12 path/to/pkcs12 pin InFile");
+	}
+
 	return 0;
 }

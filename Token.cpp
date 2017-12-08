@@ -57,10 +57,10 @@ public:
 	void *h = nullptr;
 	CK_FUNCTION_LIST_PTR f = nullptr;
 	CK_SESSION_HANDLE session = 0;
-	std::vector<uchar> id;
+	std::vector<uchar> id, cert;
 };
 
-PKCS11Token::PKCS11Token(const std::string &path)
+PKCS11Token::PKCS11Token(const std::string &path, const std::string &pass)
 	: d(new PKCS11TokenPrivate)
 {
 	CK_C_GetFunctionList l = nullptr;
@@ -74,6 +74,41 @@ PKCS11Token::PKCS11Token(const std::string &path)
 	{
 		CK_C_INITIALIZE_ARGS init_args = { 0, 0, 0, 0, CKF_OS_LOCKING_OK, 0 };
 		d->f->C_Initialize(&init_args);
+	}
+
+	CK_ULONG size = 0;
+	if(d->f->C_GetSlotList(true, 0, &size) != CKR_OK)
+		return;
+	std::vector<CK_SLOT_ID> slots(size, 0);
+	if(size && d->f->C_GetSlotList(true, slots.data(), &size) != CKR_OK)
+		return;
+	for(const CK_SLOT_ID &slot: slots)
+	{
+		if(d->f->C_OpenSession(slot, CKF_SERIAL_SESSION, nullptr, nullptr, &d->session) != CKR_OK)
+			continue;
+		for(CK_OBJECT_HANDLE obj: d->findObject(CKO_CERTIFICATE))
+		{
+			d->cert = d->attribute(obj, CKA_VALUE);
+			d->id = d->attribute(obj, CKA_ID);
+			if(d->cert.empty() || d->id.empty())
+			{
+				d->f->C_CloseSession(d->session);
+				d->session = 0;
+				continue;
+			}
+
+			switch(d->f->C_Login(d->session, CKU_USER, CK_BYTE_PTR(pass.c_str()), CK_ULONG(pass.size())))
+			{
+			case CKR_OK:
+			case CKR_USER_ALREADY_LOGGED_IN: return;
+			case CKR_CANCEL:
+			case CKR_FUNCTION_CANCELED:
+			default:
+				d->f->C_CloseSession(d->session);
+				d->session = 0;
+				return;
+			}
+		}
 	}
 }
 
@@ -94,12 +129,16 @@ PKCS11Token::~PKCS11Token()
 	delete d;
 }
 
-std::vector<uchar> PKCS11Token::decrypt(const std::vector<uchar> &cert, const std::string &pass, const std::vector<uchar> &data)
+std::vector<uchar> PKCS11Token::cert() const
+{
+	return d->cert;
+}
+
+std::vector<uchar> PKCS11Token::decrypt(const std::vector<uchar> &data) const
 {
 	std::vector<uchar> result;
-	if(!login(cert, pass))
+	if(!d->session)
 		return result;
-
 	std::vector<CK_OBJECT_HANDLE> key = d->findObject(CKO_PRIVATE_KEY, d->id);
 	if(key.size() != 1)
 		return result;
@@ -118,12 +157,11 @@ std::vector<uchar> PKCS11Token::decrypt(const std::vector<uchar> &cert, const st
 	return result;
 }
 
-std::vector<uchar> PKCS11Token::derive(const std::vector<uchar> &cert, const std::string &pass, const std::vector<uchar> &publicKey)
+std::vector<uchar> PKCS11Token::derive(const std::vector<uchar> &publicKey) const
 {
 	std::vector<uchar> sharedSecret;
-	if(!login(cert, pass))
+	if(!d->session)
 		return sharedSecret;
-
 	std::vector<CK_OBJECT_HANDLE> key = d->findObject(CKO_PRIVATE_KEY, d->id);
 	if(key.size() != 1)
 		return sharedSecret;
@@ -150,62 +188,30 @@ std::vector<uchar> PKCS11Token::derive(const std::vector<uchar> &cert, const std
 	return d->attribute(newkey, CKA_VALUE);
 }
 
-bool PKCS11Token::login(const std::vector<uchar> &cert, const std::string &pass)
-{
-	CK_ULONG size = 0;
-	if(d->f->C_GetSlotList(true, 0, &size) != CKR_OK)
-		return false;
-	std::vector<CK_SLOT_ID> slots(size, 0);
-	if(size && d->f->C_GetSlotList(true, slots.data(), &size) != CKR_OK)
-		return false;
-	d->id = [&] {
-		for(const CK_SLOT_ID &slot: slots)
-		{
-			if(d->session)
-				d->f->C_CloseSession(d->session);
-			if(d->f->C_OpenSession(slot, CKF_SERIAL_SESSION, nullptr, nullptr, &d->session) != CKR_OK)
-				continue;
-			for(CK_OBJECT_HANDLE obj: d->findObject(CKO_CERTIFICATE))
-			{
-				if(d->attribute(obj, CKA_VALUE) == cert)
-					return d->attribute(obj, CKA_ID);
-			}
-		}
-		return std::vector<uchar>();
-	}();
-	if(d->id.empty())
-	{
-		if(d->session)
-			d->f->C_CloseSession(d->session);
-		return false;
-	}
-
-	switch(d->f->C_Login(d->session, CKU_USER, CK_BYTE_PTR(pass.c_str()), CK_ULONG(pass.size())))
-	{
-	case CKR_OK:
-	case CKR_USER_ALREADY_LOGGED_IN: return true;
-	case CKR_CANCEL:
-	case CKR_FUNCTION_CANCELED:
-	default:
-		return false;
-	}
-}
-
 
 
 class PKCS12Token::PKCS12TokenPrivate
 {
 public:
-	std::unique_ptr<PKCS12, decltype(&PKCS12_free)> p12 = std::unique_ptr<PKCS12, decltype(&PKCS12_free)>(nullptr, PKCS12_free);
+	std::unique_ptr<EVP_PKEY, decltype(&EVP_PKEY_free)> pkey = std::unique_ptr<EVP_PKEY, decltype(&EVP_PKEY_free)>(nullptr, EVP_PKEY_free);
+	std::unique_ptr<X509, decltype(&X509_free)> cert = std::unique_ptr<X509, decltype(&X509_free)>(nullptr, X509_free);
+	std::string pass;
 };
 
-PKCS12Token::PKCS12Token(const std::string &path)
+PKCS12Token::PKCS12Token(const std::string &path, const std::string &pass)
 	: d(new PKCS12TokenPrivate)
 {
 	SSL_load_error_strings();
 	SSL_library_init();
 	SCOPE(BIO, bio, BIO_new_file(path.c_str(), "rb"));
-	d->p12.reset(d2i_PKCS12_bio(bio.get(), 0));
+	std::unique_ptr<PKCS12, decltype(&PKCS12_free)> p12(d2i_PKCS12_bio(bio.get(), 0), PKCS12_free);
+	d->pass = pass;
+
+	EVP_PKEY *pkey = nullptr;
+	X509 *cert = nullptr;
+	PKCS12_parse(p12.get(), d->pass.c_str(), &pkey, &cert, nullptr);
+	d->pkey.reset(pkey);
+	d->cert.reset(cert);
 }
 
 PKCS12Token::~PKCS12Token()
@@ -213,32 +219,41 @@ PKCS12Token::~PKCS12Token()
 	delete d;
 }
 
-std::vector<uchar> PKCS12Token::decrypt(const std::vector<uchar> &/*cert*/, const std::string &pass, const std::vector<uchar> &data)
+std::vector<uchar> PKCS12Token::cert() const
 {
 	std::vector<uchar> result;
-	if(!d->p12)
+	if(!d->cert)
 		return result;
+	int size = i2d_X509(d->cert.get(), nullptr);
+	if(size <= 0)
+		return result;
+	result.resize(size_t(size));
+	uchar *p = result.data();
+	if(size != i2d_X509(d->cert.get(), &p))
+		result.clear();
+	return result;
+}
 
-	EVP_PKEY *_pkey = nullptr;
-	PKCS12_parse(d->p12.get(), pass.c_str(), &_pkey, nullptr, nullptr);
-	SCOPE(EVP_PKEY, pkey, _pkey);
+std::vector<uchar> PKCS12Token::decrypt(const std::vector<uchar> &data) const
+{
+	std::vector<uchar> result;
+	if(!d->pkey)
+		return result;
+	SCOPE(EVP_PKEY, pkey, d->pkey.get());
 	SCOPE(RSA, rsa, EVP_PKEY_get1_RSA(pkey.get()));
-
 	result.resize(size_t(RSA_size(rsa.get())));
 	if(RSA_private_decrypt(int(data.size()), data.data(), result.data(), rsa.get(), RSA_PKCS1_PADDING) == 1)
 		result.clear();
 	return result;
 }
 
-std::vector<uchar> PKCS12Token::derive(const std::vector<uchar> &, const std::string &pass, const std::vector<uchar> &publicKey)
+std::vector<uchar> PKCS12Token::derive(const std::vector<uchar> &publicKey) const
 {
 	std::vector<uchar> result;
-	if(!d->p12)
+	if(!d->pkey)
 		return result;
 
-	EVP_PKEY *_pkey = nullptr;
-	PKCS12_parse(d->p12.get(), pass.c_str(), &_pkey, nullptr, nullptr);
-	SCOPE(EVP_PKEY, pkey, _pkey);
+	SCOPE(EVP_PKEY, pkey, d->pkey.get());
 	SCOPE(EC_KEY, pECKey, EVP_PKEY_get1_EC_KEY(pkey.get()));
 
 	size_t size = (publicKey.size() - 1) / 2;

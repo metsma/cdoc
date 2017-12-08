@@ -1,6 +1,7 @@
 #include "CDOCReader.h"
 
 #include "Crypto.h"
+#include "Token.h"
 
 #include <libxml/xmlreader.h>
 
@@ -222,4 +223,18 @@ std::vector<uchar> CDOCReader::decryptData(const std::vector<uchar> &key)
 	err = EVP_CipherFinal(ctx.get(), result.data() + size, &size2);
 	result.resize(size_t(size + size2));
 	return result;
+}
+
+std::vector<uchar> CDOCReader::decryptData(Token *token)
+{
+	Key k;
+	for(const Key &key: d->keys)
+		if(key.cert == token->cert())
+			k = key;
+	if(k.cert.empty())
+		return std::vector<uchar>();
+	std::vector<uchar> sharedSecret = token->derive(k.publicKey);
+	std::vector<uchar> derived = Crypto::concatKDF(k.concatDigest, Crypto::keySize(k.method), sharedSecret, k.AlgorithmID, k.PartyUInfo, k.PartyVInfo);
+	std::vector<uchar> transport = Crypto::AESDecWrap(derived, k.cipher);
+	return decryptData(transport);
 }
