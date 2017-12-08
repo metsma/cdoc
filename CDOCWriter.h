@@ -1,9 +1,11 @@
 #pragma once
 
+#include <CDOCExport.h>
+
 #include <string>
 #include <vector>
 
-class CDOCWriter
+class CDOC_EXPORT CDOCWriter
 {
 public:
 	CDOCWriter(const std::string &file, const std::string &method);

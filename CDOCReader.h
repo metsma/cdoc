@@ -1,10 +1,12 @@
 #pragma once
 
+#include <CDOCExport.h>
+
 #include <string>
 #include <vector>
 
 class Token;
-class CDOCReader
+class CDOC_EXPORT CDOCReader
 {
 public:
 	struct Key

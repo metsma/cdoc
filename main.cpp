@@ -21,7 +21,7 @@ int main(int argc, char *argv[])
 {
 	if(argc == 5 && strcmp(argv[1], "encrypt") == 0)
 	{
-		CDOCWriter w(argv[4], Crypto::AES256GCM_MTH);
+		CDOCWriter w(argv[4], "http://www.w3.org/2009/xmlenc11#aes256-gcm");
 		w.addRecipient(readFile(argv[2]));
 		std::string inFile = argv[3];
 		size_t pos = inFile.find_last_of("/\\");

@@ -1,11 +1,13 @@
 #pragma once
 
+#include <CDOCExport.h>
+
 #include <string>
 #include <vector>
 
 typedef unsigned char uchar;
 
-class Token
+class CDOC_EXPORT Token
 {
 public:
 	virtual ~Token();
@@ -16,7 +18,7 @@ protected:
 	Token();
 };
 
-class PKCS11Token: public Token
+class CDOC_EXPORT PKCS11Token: public Token
 {
 public:
 	PKCS11Token(const std::string &path, const std::string &pass);
@@ -29,7 +31,7 @@ private:
 	PKCS11TokenPrivate *d;
 };
 
-class PKCS12Token: public Token
+class CDOC_EXPORT PKCS12Token: public Token
 {
 public:
 	PKCS12Token(const std::string &path, const std::string &pass);
