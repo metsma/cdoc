@@ -6,6 +6,7 @@
 #include <libxml/xmlreader.h>
 
 #include <openssl/evp.h>
+#include <openssl/x509.h>
 
 #include <map>
 
@@ -233,8 +234,23 @@ std::vector<uchar> CDOCReader::decryptData(Token *token)
 			k = key;
 	if(k.cert.empty())
 		return std::vector<uchar>();
-	std::vector<uchar> sharedSecret = token->derive(k.publicKey);
-	std::vector<uchar> derived = Crypto::concatKDF(k.concatDigest, Crypto::keySize(k.method), sharedSecret, k.AlgorithmID, k.PartyUInfo, k.PartyVInfo);
-	std::vector<uchar> transport = Crypto::AESDecWrap(derived, k.cipher);
-	return decryptData(transport);
+	const uchar *p = k.cert.data();
+	SCOPE(X509, x509, d2i_X509(nullptr, &p, int(k.cert.size())));
+	SCOPE(EVP_PKEY, key, X509_get_pubkey(x509.get()));
+	switch(EVP_PKEY_base_id(key.get()))
+	{
+	case EVP_PKEY_EC:
+	{
+		std::vector<uchar> sharedSecret = token->derive(k.publicKey);
+		std::vector<uchar> derived = Crypto::concatKDF(k.concatDigest, Crypto::keySize(k.method), sharedSecret, k.AlgorithmID, k.PartyUInfo, k.PartyVInfo);
+		std::vector<uchar> transport = Crypto::AESDecWrap(derived, k.cipher);
+		return decryptData(transport);
+	}
+	case EVP_PKEY_RSA:
+	{
+		std::vector<uchar> transport = token->decrypt(k.cipher);
+		return decryptData(transport);
+	}
+	default: return std::vector<uchar>();
+	}
 }
