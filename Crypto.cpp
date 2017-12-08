@@ -115,13 +115,19 @@ std::vector<uchar> Crypto::concatKDF(const std::string &hashAlg, uint32_t keyDat
 
 std::vector<uchar> Crypto::decodeBase64(const uchar *data)
 {
-	size_t s = strlen((const char*)data);
-	std::vector<uchar> result(s, 0);
-	size_t eof = 0;
-	if (s > 0 && data[s - 1] == '=') eof++;
-	if (s > 1 && data[s - 2] == '=') eof++;
-	int size = EVP_DecodeBlock(result.data(), data, int(result.size()));
-	result.resize(size_t(size) - eof);
+	std::vector<uchar> result(strlen((const char*)data), 0);
+	EVP_ENCODE_CTX ctx;
+	EVP_DecodeInit(&ctx);
+	int size1 = 0, size2 = 0;
+	if(EVP_DecodeUpdate(&ctx, result.data(), &size1, data, int(result.size())) == -1)
+	{
+		result.clear();
+		return result;
+	}
+	if(EVP_DecodeFinal(&ctx, result.data(), &size2) == 1)
+		result.resize(size1 + size2);
+	else
+		result.clear();
 	return result;
 }
 
