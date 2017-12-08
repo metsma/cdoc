@@ -1,6 +1,8 @@
 #pragma once
 
+#include <iomanip>
 #include <string>
+#include <sstream>
 #include <vector>
 
 typedef unsigned char uchar;
@@ -29,4 +31,13 @@ public:
 	static std::string encodeBase64(const std::vector<uchar> &data);
 	static Key generateKey(const std::string &method);
 	static uint32_t keySize(const std::string &algo);
+	template <typename F>
+	static std::string toHex(const F &data)
+	{
+		std::stringstream os;
+		os << std::hex << std::uppercase << std::setfill('0');
+		for(const auto &i: data)
+			os << std::setw(2) << (static_cast<int>(i) & 0xFF);
+		return os.str();
+	}
 };

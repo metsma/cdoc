@@ -52,6 +52,8 @@ CDOCReader::CDOCReader(const std::string &file)
 			data[1] = *(i++);
 			out.push_back(static_cast<uchar>(strtoul(data, 0, 16)));
 		}
+		if(out[0] == 0x00)
+			out.erase(out.cbegin());
 		return out;
 	};
 
@@ -123,9 +125,6 @@ CDOCReader::CDOCReader(const std::string &file)
 					key.AlgorithmID = hex2bin(attribute(reader, "AlgorithmID"));
 					key.PartyUInfo = hex2bin(attribute(reader, "PartyUInfo"));
 					key.PartyVInfo = hex2bin(attribute(reader, "PartyVInfo"));
-					if(key.AlgorithmID[0] == 0x00) key.AlgorithmID.erase(key.AlgorithmID.cbegin());
-					if(key.PartyUInfo[0] == 0x00) key.PartyUInfo.erase(key.PartyUInfo.cbegin());
-					if(key.PartyVInfo[0] == 0x00) key.PartyVInfo.erase(key.PartyVInfo.cbegin());
 				}
 				// EncryptedData/KeyInfo/EncryptedKey/KeyInfo/AgreementMethod/KeyDerivationMethod/ConcatKDFParams/DigestMethod
 				else if(iselement(name, "DigestMethod"))
@@ -206,6 +205,11 @@ std::vector<uchar> CDOCReader::decryptData(const std::vector<uchar> &key)
 	std::vector<uchar> iv(data.cbegin(), data.cbegin() + EVP_CIPHER_iv_length(cipher));
 	data.erase(data.cbegin(), data.cbegin() + iv.size());
 
+#ifndef NDEBUG
+	printf("iv %s\n", Crypto::toHex(iv).c_str());
+	printf("transport %s\n", Crypto::toHex(key).c_str());
+#endif
+
 	SCOPE(EVP_CIPHER_CTX, ctx, EVP_CIPHER_CTX_new());
 	int err = EVP_CipherInit(ctx.get(), cipher, key.data(), iv.data(), 0);
 
@@ -243,6 +247,11 @@ std::vector<uchar> CDOCReader::decryptData(Token *token)
 	{
 		std::vector<uchar> sharedSecret = token->derive(k.publicKey);
 		std::vector<uchar> derived = Crypto::concatKDF(k.concatDigest, Crypto::keySize(k.method), sharedSecret, k.AlgorithmID, k.PartyUInfo, k.PartyVInfo);
+#ifndef NDEBUG
+		printf("Ss %s\n", Crypto::toHex(k.publicKey).c_str());
+		printf("Ksr %s\n", Crypto::toHex(sharedSecret).c_str());
+		printf("Concat %s\n", Crypto::toHex(derived).c_str());
+#endif
 		std::vector<uchar> transport = Crypto::AESDecWrap(derived, k.cipher);
 		return decryptData(transport);
 	}

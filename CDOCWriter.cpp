@@ -14,17 +14,6 @@ struct CDOCWriter::CDOCWriterPrivate: public Writer
 	static const NS DENC, DS, XENC11, DSIG11;
 	std::string method, documentFormat = "ENCDOC-XML|1.1";
 	Crypto::Key transportKey;
-
-	template <typename F>
-	static std::string toHex(const F &data)
-	{
-		std::stringstream os;
-		os << std::hex << std::uppercase << std::setfill('0');
-		for(const auto &i: data)
-			os << std::setw(2) << (static_cast<int>(i) & 0xFF);
-		return os.str();
-	}
-
 };
 
 const Writer::NS CDOCWriter::CDOCWriterPrivate::DENC{ "denc", "http://www.w3.org/2001/04/xmlenc#" };
@@ -104,28 +93,27 @@ void CDOCWriter::addRecipient(const std::vector<uchar> &recipient)
 			default: concatDigest = Crypto::SHA512_MTH; break;
 			}
 
-			std::vector<uchar> otherInfo;
-			otherInfo.insert(otherInfo.cend(), d->documentFormat.cbegin(), d->documentFormat.cend());
-			otherInfo.insert(otherInfo.cend(), SsDer.cbegin(), SsDer.cend());
-			otherInfo.insert(otherInfo.cend(), recipient.cbegin(), recipient.cend());
-			std::vector<uchar> encryptionKey = Crypto::concatKDF(concatDigest, Crypto::keySize(encryptionMethod), sharedSecret, otherInfo);
+			std::vector<uchar> AlgorithmID(d->documentFormat.cbegin(), d->documentFormat.cend());
+			std::vector<uchar> encryptionKey = Crypto::concatKDF(concatDigest, Crypto::keySize(encryptionMethod), sharedSecret,
+				AlgorithmID, SsDer, recipient);
 			encryptedData = Crypto::AESEncWrap(encryptionKey, d->transportKey.key);
 
-			// FIXME: Remove debug
-			printf("Ss %s\n", d->toHex(SsDer).c_str());
-			printf("Ksr %s\n", d->toHex(sharedSecret).c_str());
-			printf("Concat %s\n", d->toHex(encryptionKey).c_str());
-			printf("iv %s\n", d->toHex(d->transportKey.iv).c_str());
-			printf("transport %s\n", d->toHex(d->transportKey.key).c_str());
+#ifndef NDEBUG
+			printf("Ss %s\n", Crypto::toHex(SsDer).c_str());
+			printf("Ksr %s\n", Crypto::toHex(sharedSecret).c_str());
+			printf("Concat %s\n", Crypto::toHex(encryptionKey).c_str());
+			printf("iv %s\n", Crypto::toHex(d->transportKey.iv).c_str());
+			printf("transport %s\n", Crypto::toHex(d->transportKey.key).c_str());
+#endif
 
 			d->writeElement(d->DENC, "EncryptionMethod", {{"Algorithm", encryptionMethod}});
 			d->writeElement(d->DS, "KeyInfo", [&]{
 				d->writeElement(d->DENC, "AgreementMethod", {{"Algorithm", Crypto::AGREEMENT_MTH}}, [&]{
 					d->writeElement(d->XENC11, "KeyDerivationMethod", {{"Algorithm", Crypto::CONCATKDF_MTH}}, [&]{
 						d->writeElement(d->XENC11, "ConcatKDFParams", {
-							{"AlgorithmID", "00" + d->toHex(encryptionMethod)},
-							{"PartyUInfo", "00" + d->toHex(SsDer)},
-							{"PartyVInfo", "00" + d->toHex(recipient)}}, [&]{
+							{"AlgorithmID", "00" + Crypto::toHex(AlgorithmID)},
+							{"PartyUInfo", "00" + Crypto::toHex(SsDer)},
+							{"PartyVInfo", "00" + Crypto::toHex(recipient)}}, [&]{
 							d->writeElement(d->DS, "DigestMethod", {{"Algorithm", concatDigest}});
 						});
 					});

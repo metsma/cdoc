@@ -3,27 +3,31 @@
 #include "Crypto.h"
 #include "Token.h"
 
-#include <fstream>
 #include <iostream>
+#include <fstream>
+
+static std::vector<unsigned char> readFile(const std::string &path)
+{
+	std::ifstream f(path);
+	f.seekg(0, std::ifstream::end);
+	std::vector<unsigned char> data(size_t(f.tellg()), 0);
+	f.clear();
+	f.seekg(0);
+	f.read((char*)data.data(), data.size());
+	return data;
+}
 
 int main(int argc, char *argv[])
 {
-	if(argc == 4 && strcmp(argv[1], "encrypt") == 0)
+	if(argc == 5 && strcmp(argv[1], "encrypt") == 0)
 	{
-		std::ifstream f(argv[2]);
-
-		f.seekg(0, std::ifstream::end);
-		std::vector<unsigned char> recipient(size_t(f.tellg()), 0);
-		f.clear();
-		f.seekg(0);
-		f.read((char*)recipient.data(), recipient.size());
-		f.close();
-
-		CDOCWriter w(argv[3], Crypto::AES256GCM_MTH);
-		w.addRecipient(recipient);
-		w.encryptData("test.txt", {0x30, 0x31, 0x32, 0x33, 0x34});
+		CDOCWriter w(argv[4], Crypto::AES256GCM_MTH);
+		w.addRecipient(readFile(argv[2]));
+		std::string inFile = argv[3];
+		size_t pos = inFile.find_last_of("/\\");
+		w.encryptData(pos == std::string::npos ? inFile : inFile.substr(pos + 1), readFile(inFile));
 	}
-	else if(argc == 6 && strcmp(argv[1], "decrypt") == 0)
+	else if(argc == 7 && strcmp(argv[1], "decrypt") == 0)
 	{
 		std::unique_ptr<Token> token;
 		if (strcmp(argv[2], "pkcs11") == 0)
@@ -31,15 +35,16 @@ int main(int argc, char *argv[])
 		else if (strcmp(argv[2], "pkcs12") == 0)
 			token.reset(new PKCS12Token(argv[3], argv[4]));
 		CDOCReader r(argv[5]);
+		std::ofstream f(argv[6]);
 		std::vector<unsigned char> data = r.decryptData(token.get());
-		std::cout << std::string(data.cbegin(), data.cend());
+		f.write((const char*)data.data(), data.size());
 	}
 	else
 	{
-		printf("cdoc encrypt X509DerRecipientCert OutFile");
-		printf("cdoc decrypt pkcs11 path/to/so pin InFile");
-		printf("cdoc decrypt pkcs12 path/to/pkcs12 pin InFile");
+		std::cout
+			<< "cdoc encrypt X509DerRecipientCert InFile OutFile" << std::endl
+			<< "cdoc decrypt pkcs11 path/to/so pin InFile OutFile" << std::endl
+			<< "cdoc decrypt pkcs12 path/to/pkcs12 pin InFile OutFile" << std::endl;
 	}
-
 	return 0;
 }
