@@ -32,8 +32,15 @@ generate_export_header(cdoc EXPORT_FILE_NAME CDOCExport.h)
 target_link_libraries(cdoc ${LIBXML2_LIBRARIES} ${OPENSSL_CRYPTO_LIBRARY} ${OPENSSL_SSL_LIBRARY} ${LIBS})
 add_executable(cdoc-tool main.cpp)
 target_link_libraries(cdoc-tool cdoc)
+install(TARGETS cdoc cdoc-tool
+	LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+	ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+	RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+	PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/cdoc
+	FRAMEWORK DESTINATION /Library/Frameworks
+)
 if(DOXYGEN_FOUND)
-	configure_file( ${CMAKE_SOURCE_DIR}/Doxyfile.in Doxyfile @ONLY )
+	configure_file(${CMAKE_SOURCE_DIR}/Doxyfile.in Doxyfile @ONLY)
 	add_custom_target(docs ALL
 		${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile
 		WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
