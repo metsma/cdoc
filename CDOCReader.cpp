@@ -252,7 +252,7 @@ std::vector<uchar> CDOCReader::decryptData(Token *token)
 		printf("Ksr %s\n", Crypto::toHex(sharedSecret).c_str());
 		printf("Concat %s\n", Crypto::toHex(derived).c_str());
 #endif
-		std::vector<uchar> transport = Crypto::AESDecWrap(derived, k.cipher);
+		std::vector<uchar> transport = Crypto::AESWrap(derived, k.cipher, false);
 		return decryptData(transport);
 	}
 	case EVP_PKEY_RSA:

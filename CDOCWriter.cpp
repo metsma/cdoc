@@ -59,7 +59,7 @@ void CDOCWriter::addRecipient(const std::vector<uchar> &recipient)
 		{
 			SCOPE(RSA, rsa, EVP_PKEY_get1_RSA(peerPKey.get()));
 			encryptedData.resize(size_t(RSA_size(rsa.get())));
-			RSA_public_encrypt(d->transportKey.key.size(), d->transportKey.key.data(),
+			RSA_public_encrypt(int(d->transportKey.key.size()), d->transportKey.key.data(),
 				encryptedData.data(), rsa.get(), RSA_PKCS1_PADDING);
 			d->writeElement(d->DENC, "EncryptionMethod", {{"Algorithm", Crypto::RSA_MTH}});
 			d->writeElement(d->DS, "KeyInfo", [&]{
@@ -80,7 +80,7 @@ void CDOCWriter::addRecipient(const std::vector<uchar> &recipient)
 			std::vector<uchar> sharedSecret = Crypto::deriveSharedSecret(pkey.get(), peerPKey.get());
 
 			std::string oid(50, 0);
-			oid.resize(size_t(OBJ_obj2txt(&oid[0], oid.size(), OBJ_nid2obj(curveName), 1)));
+			oid.resize(size_t(OBJ_obj2txt(&oid[0], int(oid.size()), OBJ_nid2obj(curveName), 1)));
 			std::vector<uchar> SsDer(size_t(i2d_PublicKey(pkey.get(), nullptr)), 0);
 			uchar *p = SsDer.data();
 			i2d_PublicKey(pkey.get(), &p);
@@ -96,7 +96,7 @@ void CDOCWriter::addRecipient(const std::vector<uchar> &recipient)
 			std::vector<uchar> AlgorithmID(d->documentFormat.cbegin(), d->documentFormat.cend());
 			std::vector<uchar> encryptionKey = Crypto::concatKDF(concatDigest, Crypto::keySize(encryptionMethod), sharedSecret,
 				AlgorithmID, SsDer, recipient);
-			encryptedData = Crypto::AESEncWrap(encryptionKey, d->transportKey.key);
+			encryptedData = Crypto::AESWrap(encryptionKey, d->transportKey.key, true);
 
 #ifndef NDEBUG
 			printf("Ss %s\n", Crypto::toHex(SsDer).c_str());

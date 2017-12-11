@@ -23,23 +23,20 @@ const std::string Crypto::RSA_MTH = "http://www.w3.org/2001/04/xmlenc#rsa-1_5";
 const std::string Crypto::CONCATKDF_MTH = "http://www.w3.org/2009/xmlenc11#ConcatKDF";
 const std::string Crypto::AGREEMENT_MTH = "http://www.w3.org/2009/xmlenc11#ECDH-ES";
 
-std::vector<uchar> Crypto::AESEncWrap(const std::vector<uchar> &key, const std::vector<uchar> &data)
+std::vector<uchar> Crypto::AESWrap(const std::vector<uchar> &key, const std::vector<uchar> &data, bool encrypt)
 {
 	AES_KEY aes;
-	AES_set_encrypt_key(key.data(), int(key.size()) * 8, &aes);
+	encrypt ?
+		AES_set_encrypt_key(key.data(), int(key.size()) * 8, &aes) :
+		AES_set_decrypt_key(key.data(), int(key.size()) * 8, &aes);
 	std::vector<uchar> result(data.size() + 8);
-	result.resize(size_t(AES_wrap_key(&aes, nullptr, result.data(), data.data(), data.size())));
-	return result;
-}
-
-std::vector<uchar> Crypto::AESDecWrap(const std::vector<uchar> &key, const std::vector<uchar> &data)
-{
-	AES_KEY aes;
-	AES_set_decrypt_key(key.data(), int(key.size()) * 8, &aes);
-	std::vector<uchar> result(data.size() + 8);
-	static const uchar DEFAULT_IV[] = { 0xA6, 0xA6, 0xA6, 0xA6, 0xA6, 0xA6, 0xA6, 0xA6 };
-	int size = AES_unwrap_key(&aes, DEFAULT_IV, result.data(), data.data(), data.size());
-	result.resize(size_t(size));
+	int size = encrypt ?
+		AES_wrap_key(&aes, nullptr, result.data(), data.data(), data.size()) :
+		AES_unwrap_key(&aes, nullptr, result.data(), data.data(), data.size());
+	if(size > 0)
+		result.resize(size_t(size));
+	else
+		result.clear();
 	return result;
 }
 
@@ -54,7 +51,8 @@ const EVP_CIPHER *Crypto::cipher(const std::string &algo)
 	return nullptr;
 }
 
-std::vector<uchar> Crypto::concatKDF(const std::string &hashAlg, uint32_t keyDataLen, const std::vector<uchar> &z, const std::vector<uchar> &otherInfo)
+std::vector<uchar> Crypto::concatKDF(const std::string &hashAlg, uint32_t keyDataLen,
+	const std::vector<uchar> &z, const std::vector<uchar> &otherInfo)
 {
 	std::vector<uchar> key;
 	uint32_t hashLen = SHA384_DIGEST_LENGTH;

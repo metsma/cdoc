@@ -204,7 +204,7 @@ PKCS12Token::PKCS12Token(const std::string &path, const std::string &pass)
 	SSL_load_error_strings();
 	SSL_library_init();
 	SCOPE(BIO, bio, BIO_new_file(path.c_str(), "rb"));
-	std::unique_ptr<PKCS12, decltype(&PKCS12_free)> p12(d2i_PKCS12_bio(bio.get(), 0), PKCS12_free);
+	SCOPE(PKCS12, p12, d2i_PKCS12_bio(bio.get(), 0));
 	d->pass = pass;
 
 	EVP_PKEY *pkey = nullptr;

@@ -20,12 +20,11 @@ public:
 
 	struct Key { std::vector<uchar> key, iv; };
 
-	static std::vector<uchar> AESEncWrap(const std::vector<uchar> &key, const std::vector<uchar> &data);
-	static std::vector<uchar> AESDecWrap(const std::vector<uchar> &key, const std::vector<uchar> &data);
+	static std::vector<uchar> AESWrap(const std::vector<uchar> &key, const std::vector<uchar> &data, bool encrypt);
 	static const EVP_CIPHER *cipher(const std::string &algo);
 	static std::vector<uchar> concatKDF(const std::string &hashAlg, uint32_t keyDataLen, const std::vector<uchar> &z, const std::vector<uchar> &otherInfo);
 	static std::vector<uchar> concatKDF(const std::string &hashAlg, uint32_t keyDataLen, const std::vector<uchar> &z,
-	    const std::vector<uchar> &AlgorithmID, const std::vector<uchar> &PartyUInfo, const std::vector<uchar> &PartyVInfo);
+		const std::vector<uchar> &AlgorithmID, const std::vector<uchar> &PartyUInfo, const std::vector<uchar> &PartyVInfo);
 	static std::vector<uchar> decodeBase64(const uchar *data);
 	static std::vector<uchar> deriveSharedSecret(EVP_PKEY *pkey, EVP_PKEY *peerPKey);
 	static std::string encodeBase64(const std::vector<uchar> &data);
