@@ -39,8 +39,8 @@ int main(int argc, char *argv[])
 			token.reset(new WinToken(strcmp(argv[3], "ui") == 0, argv[4]));
 #endif
 		CDOCReader r(argv[5]);
-		std::ofstream f(argv[6]);
 		std::vector<unsigned char> data = r.decryptData(token.get());
+		std::ofstream f(argv[6]);
 		f.write((const char*)data.data(), data.size());
 	}
 	else

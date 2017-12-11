@@ -109,7 +109,11 @@ public:
 		return data;
 	}
 
+#ifdef _WIN32
+	HMODULE h = nullptr;
+#else
 	void *h = nullptr;
+#endif
 	CK_FUNCTION_LIST_PTR f = nullptr;
 	CK_SESSION_HANDLE session = 0;
 	std::vector<uchar> id, cert;
@@ -126,16 +130,20 @@ PKCS11Token::PKCS11Token(const std::string &path, const std::string &password)
 {
 	CK_C_GetFunctionList l = nullptr;
 #ifdef _WIN32
+	int len = MultiByteToWideChar(CP_UTF8, 0, path.data(), int(path.size()), 0, 0);
+	std::wstring out(size_t(len), 0);
+	MultiByteToWideChar(CP_UTF8, 0, path.data(), int(path.size()), &out[0], len);
+	if((d->h = LoadLibrary(out.c_str())))
+		l = CK_C_GetFunctionList(GetProcAddress(d->h, "C_GetFunctionList"));
 #else
-	d->h = dlopen(path.c_str(), RTLD_LAZY);
-	if(d->h)
+	if((d->h = dlopen(path.c_str(), RTLD_LAZY)))
 		l = CK_C_GetFunctionList(dlsym(d->h, "C_GetFunctionList"));
 #endif
-	if(l && l(&d->f) == CKR_OK && d->f)
-	{
-		CK_C_INITIALIZE_ARGS init_args = { 0, 0, 0, 0, CKF_OS_LOCKING_OK, 0 };
-		d->f->C_Initialize(&init_args);
-	}
+	if(!l || l(&d->f) != CKR_OK || !d->f)
+		return;
+
+	CK_C_INITIALIZE_ARGS init_args = { 0, 0, 0, 0, CKF_OS_LOCKING_OK, 0 };
+	d->f->C_Initialize(&init_args);
 
 	CK_ULONG size = 0;
 	if(d->f->C_GetSlotList(true, 0, &size) != CKR_OK)
@@ -183,6 +191,8 @@ PKCS11Token::~PKCS11Token()
 		d->f = nullptr;
 	}
 #ifdef _WIN32
+	if(d->h)
+		FreeLibrary(d->h);
 #else
 	if(d->h)
 		dlclose(d->h);
@@ -383,7 +393,7 @@ class WinToken::WinTokenPrivate
 {
 public:
 	static BOOL WINAPI CertFilter(PCCERT_CONTEXT cert,
-		BOOL */*is_initial_selected_cert*/, void */*callback_data*/)
+		BOOL * /*is_initial_selected_cert*/, void * /*callback_data*/)
 	{
 		BYTE keyUsage = 0;
 		if(!CertGetIntendedKeyUsage(X509_ASN_ENCODING | PKCS_7_ASN_ENCODING, cert->pCertInfo, &keyUsage, 1))
