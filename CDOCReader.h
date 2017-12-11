@@ -29,6 +29,8 @@ public:
 	std::vector<unsigned char> decryptData(Token *token);
 
 private:
+	CDOCReader(const CDOCReader &) = delete;
+	CDOCReader &operator=(const CDOCReader &) = delete;
 	class CDOCReaderPrivate;
 	CDOCReaderPrivate *d;
 };

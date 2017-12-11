@@ -15,6 +15,8 @@ public:
 	void encryptData(const std::string &name, const std::vector<unsigned char> &data);
 
 private:
+	CDOCWriter(const CDOCWriter &) = delete;
+	CDOCWriter &operator=(const CDOCWriter &) = delete;
 	struct CDOCWriterPrivate;
 	CDOCWriterPrivate *d;
 };
