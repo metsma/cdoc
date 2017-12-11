@@ -8,6 +8,11 @@
 #include <iomanip>
 #include <sstream>
 
+/**
+ * @class CDOCWriter
+ * @brief CDOCWriter is used for encrypt data.
+ */
+
 struct CDOCWriter::CDOCWriterPrivate: public Writer
 {
 	CDOCWriterPrivate(const std::string &file): Writer(file) {}
@@ -24,6 +29,11 @@ const Writer::NS CDOCWriter::CDOCWriterPrivate::DSIG11{ "dsig11", "http://www.w3
 
 
 
+/**
+ * CDOCWriter constructor.
+ * @param file File to be created
+ * @param method Encrypton method to be used
+ */
 CDOCWriter::CDOCWriter(const std::string &file, const std::string &method)
 	: d(new CDOCWriterPrivate(file))
 {
@@ -38,6 +48,10 @@ CDOCWriter::~CDOCWriter()
 	delete d;
 }
 
+/**
+ * Add X509 certificate recipient
+ * @param recipient DER certificate to encrypted for
+ */
 void CDOCWriter::addRecipient(const std::vector<uchar> &recipient)
 {
 	const uchar *p = recipient.data();
@@ -143,6 +157,11 @@ void CDOCWriter::addRecipient(const std::vector<uchar> &recipient)
 	});
 }
 
+/**
+ * Encrypt data
+ * @param name Filename of encrypted data
+ * @param data File content to be encrypted
+ */
 void CDOCWriter::encryptData(const std::string &name, const std::vector<uchar> &data)
 {
 	d->writeEndElement(d->DS); // KeyInfo

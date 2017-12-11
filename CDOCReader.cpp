@@ -13,15 +13,36 @@
 typedef xmlChar *pxmlChar;
 typedef const xmlChar *pcxmlChar;
 
+/**
+ * @class CDOCReader
+ * @brief CDOCReader is used for decrypt data.
+ */
+
 class CDOCReader::CDOCReaderPrivate
 {
 public:
+	struct Key
+	{
+		std::string id, recipient, name;
+		std::string method, agreement, derive, concatDigest;
+		std::vector<unsigned char> cert, publicKey, cipher;
+		std::vector<unsigned char> AlgorithmID, PartyUInfo, PartyVInfo;
+	};
+	struct File
+	{
+		std::string name, size, mime, id;
+	};
+
 	std::string file, mime, method;
 	std::vector<Key> keys;
 	std::vector<File> files;
 	std::map<std::string,std::string> properties;
 };
 
+/**
+ * CDOCReader constructor.
+ * @param file File to open reading
+ */
 CDOCReader::CDOCReader(const std::string &file)
 	: d(new CDOCReaderPrivate)
 {
@@ -77,7 +98,7 @@ CDOCReader::CDOCReader(const std::string &file)
 			std::string value = tostring(xmlTextReaderConstValue(reader));
 			if(attr == "orig_file")
 			{
-				File file;
+				CDOCReaderPrivate::File file;
 				size_t pos = 0, oldpos = 0;
 				file.name = value.substr(oldpos, (pos = value.find("|", oldpos)) - oldpos);
 				oldpos = pos + 1;
@@ -94,7 +115,7 @@ CDOCReader::CDOCReader(const std::string &file)
 		// EncryptedData/KeyInfo/EncryptedKey
 		else if(iselement(name, "EncryptedKey"))
 		{
-			Key key;
+			CDOCReaderPrivate::Key key;
 			key.id = attribute(reader, "Id");
 			key.recipient = attribute(reader, "Recipient");
 			while((ret = xmlTextReaderRead(reader)) == 1)
@@ -159,11 +180,10 @@ CDOCReader::~CDOCReader()
 	delete d;
 }
 
-std::vector<CDOCReader::Key> CDOCReader::keys() const
-{
-	return d->keys;
-}
-
+/**
+ * Returns decrypted data
+ * @param key Transport key to used for decrypt data
+ */
 std::vector<uchar> CDOCReader::decryptData(const std::vector<uchar> &key)
 {
 	auto iselement = [](const xmlChar *name, const char *elem) {
@@ -230,11 +250,15 @@ std::vector<uchar> CDOCReader::decryptData(const std::vector<uchar> &key)
 	return result;
 }
 
+/**
+ * Returns decrypted data
+ * @param token Token to be used for decrypting data
+ */
 std::vector<uchar> CDOCReader::decryptData(Token *token)
 {
-	Key k;
+	CDOCReaderPrivate::Key k;
 	std::vector<uchar> cert = token->cert();
-	for(const Key &key: d->keys)
+	for(const CDOCReaderPrivate::Key &key: d->keys)
 		if(key.cert == cert)
 			k = key;
 	if(k.cert.empty())

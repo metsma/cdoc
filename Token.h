@@ -20,14 +20,15 @@ public:
 	virtual std::vector<uchar> deriveConcatKDF(const std::vector<uchar> &publicKey, const std::string &digest, unsigned int keySize,
 		const std::vector<uchar> &algorithmID, const std::vector<uchar> &partyUInfo, const std::vector<uchar> &partyVInfo) const;
 protected:
-	DISABLE_COPY(Token);
 	Token();
+private:
+	DISABLE_COPY(Token);
 };
 
 class CDOC_EXPORT PKCS11Token: public Token
 {
 public:
-	PKCS11Token(const std::string &path, const std::string &pass);
+	PKCS11Token(const std::string &path, const std::string &password);
 	~PKCS11Token();
 	virtual std::vector<uchar> cert() const override;
 	std::vector<uchar> decrypt(const std::vector<uchar> &data) const override;
@@ -41,7 +42,7 @@ private:
 class CDOC_EXPORT PKCS12Token: public Token
 {
 public:
-	PKCS12Token(const std::string &path, const std::string &pass);
+	PKCS12Token(const std::string &path, const std::string &password);
 	~PKCS12Token();
 	virtual std::vector<uchar> cert() const override;
 	std::vector<uchar> decrypt(const std::vector<uchar> &data) const override;

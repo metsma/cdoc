@@ -15,13 +15,49 @@
 #include <dlfcn.h>
 #endif
 
+/**
+ * @class Token
+ * @brief Abstract Token interface to subclass different implementations.
+ */
+
 Token::Token() = default;
 Token::~Token() = default;
+
+/**
+ * @fn Token::cert
+ *
+ * Returns Token certificate
+ */
+
+
+/**
+ * @fn Token::decrypt
+ *
+ * Returns decrypted RSA data
+ * @param data Data to decrypted
+ */
+
+/**
+ * @fn Token::derive
+ *
+ * Returns derived shared key
+ * @param publicKey ECDH public Key used to derive shared secret
+ */
 std::vector<uchar> Token::derive(const std::vector<uchar> &) const
 {
 	return std::vector<uchar>();
 }
 
+/**
+ * The ConcatKDF key derivation algorithm, defined in Section 5.8.1 of NIST SP 800-56A.
+ * Returns derived key by using Token::derive shared secret
+ * @param publicKey ECDH public Key used to derive shared secret
+ * @param digest Digest method to use for ConcatKDF algorithm
+ * @param keySize Key size to output
+ * @param algorithmID OtherInfo info parameters to input
+ * @param partyUInfo OtherInfo info parameters to input
+ * @param partyVInfo OtherInfo info parameters to input
+ */
 std::vector<uchar> Token::deriveConcatKDF(const std::vector<uchar> &publicKey, const std::string &digest, uint32_t keySize,
 	const std::vector<uchar> &algorithmID, const std::vector<uchar> &partyUInfo, const std::vector<uchar> &partyVInfo) const
 {
@@ -29,6 +65,11 @@ std::vector<uchar> Token::deriveConcatKDF(const std::vector<uchar> &publicKey, c
 }
 
 
+
+/**
+ * @class PKCS11Token
+ * @brief Implements <code>Token</code> interface for ID-Cards, which support PKCS#11 protocol.
+ */
 
 class PKCS11Token::PKCS11TokenPrivate
 {
@@ -74,7 +115,13 @@ public:
 	std::vector<uchar> id, cert;
 };
 
-PKCS11Token::PKCS11Token(const std::string &path, const std::string &pass)
+/**
+ * Loads PKCS#11 token.
+ *
+ * @param path full path to the PKCS#11 driver (e.g. /usr/lib/opensc-pkcs11.so)
+ * @param password token password
+ */
+PKCS11Token::PKCS11Token(const std::string &path, const std::string &password)
 	: d(new PKCS11TokenPrivate)
 {
 	CK_C_GetFunctionList l = nullptr;
@@ -111,7 +158,7 @@ PKCS11Token::PKCS11Token(const std::string &path, const std::string &pass)
 				continue;
 			}
 
-			switch(d->f->C_Login(d->session, CKU_USER, CK_BYTE_PTR(pass.c_str()), CK_ULONG(pass.size())))
+			switch(d->f->C_Login(d->session, CKU_USER, CK_BYTE_PTR(password.c_str()), CK_ULONG(password.size())))
 			{
 			case CKR_OK:
 			case CKR_USER_ALREADY_LOGGED_IN: return;
@@ -203,6 +250,10 @@ std::vector<uchar> PKCS11Token::derive(const std::vector<uchar> &publicKey) cons
 }
 
 
+/**
+ * @class PKCS12Token
+ * @brief Implements <code>Token</code> interface for PKCS#12 files.
+ */
 
 class PKCS12Token::PKCS12TokenPrivate
 {
@@ -212,14 +263,20 @@ public:
 	std::string pass;
 };
 
-PKCS12Token::PKCS12Token(const std::string &path, const std::string &pass)
+/**
+ * Initializes the PKCS12 token with PKCS#12 file and password.
+ *
+ * @param path PKCS#12 file path
+ * @param password PKCS#12 file password
+ */
+PKCS12Token::PKCS12Token(const std::string &path, const std::string &password)
 	: d(new PKCS12TokenPrivate)
 {
 	SSL_load_error_strings();
 	SSL_library_init();
 	SCOPE(BIO, bio, BIO_new_file(path.c_str(), "rb"));
 	SCOPE(PKCS12, p12, d2i_PKCS12_bio(bio.get(), 0));
-	d->pass = pass;
+	d->pass = password;
 
 	EVP_PKEY *pkey = nullptr;
 	X509 *cert = nullptr;
