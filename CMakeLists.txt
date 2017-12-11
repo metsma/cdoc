@@ -7,6 +7,10 @@ include_directories(${LIBXML2_INCLUDE_DIR} ${OPENSSL_INCLUDE_DIR} ${CMAKE_BINARY
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED YES)
 set(PUBLIC_HEADER Token.h CDOCReader.h CDOCWriter.h CDOCExport.h)
+if(WIN32)
+    add_definitions(-DUNICODE -DWIN32_LEAN_AND_MEAN)
+    list(APPEND LIBS Crypt32 NCrypt cryptui)
+endif()
 add_library(cdoc SHARED Writer.cpp CDOCWriter.cpp CDOCReader.cpp Crypto.cpp Token.cpp ${PUBLIC_HEADER})
 set_target_properties(cdoc PROPERTIES
 	VERSION ${PROJECT_VERSION}
@@ -23,6 +27,6 @@ set_target_properties(cdoc PROPERTIES
 	VISIBILITY_INLINES_HIDDEN YES
 )
 generate_export_header(cdoc EXPORT_FILE_NAME CDOCExport.h)
-target_link_libraries(cdoc ${LIBXML2_LIBRARIES} ${OPENSSL_CRYPTO_LIBRARY} ${OPENSSL_SSL_LIBRARY})
-add_executable(cdoc-tool WIN32 main.cpp)
+target_link_libraries(cdoc ${LIBXML2_LIBRARIES} ${OPENSSL_CRYPTO_LIBRARY} ${OPENSSL_SSL_LIBRARY} ${LIBS})
+add_executable(cdoc-tool main.cpp)
 target_link_libraries(cdoc-tool cdoc)

@@ -1,6 +1,8 @@
 #pragma once
 
+#include <cstdint>
 #include <iomanip>
+#include <memory>
 #include <string>
 #include <sstream>
 #include <vector>

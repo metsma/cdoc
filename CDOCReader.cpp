@@ -233,8 +233,9 @@ std::vector<uchar> CDOCReader::decryptData(const std::vector<uchar> &key)
 std::vector<uchar> CDOCReader::decryptData(Token *token)
 {
 	Key k;
+	std::vector<uchar> cert = token->cert();
 	for(const Key &key: d->keys)
-		if(key.cert == token->cert())
+		if(key.cert == cert)
 			k = key;
 	if(k.cert.empty())
 		return std::vector<uchar>();
@@ -245,11 +246,10 @@ std::vector<uchar> CDOCReader::decryptData(Token *token)
 	{
 	case EVP_PKEY_EC:
 	{
-		std::vector<uchar> sharedSecret = token->derive(k.publicKey);
-		std::vector<uchar> derived = Crypto::concatKDF(k.concatDigest, Crypto::keySize(k.method), sharedSecret, k.AlgorithmID, k.PartyUInfo, k.PartyVInfo);
+		std::vector<uchar> derived = token->deriveConcatKDF(k.publicKey, k.concatDigest,
+			Crypto::keySize(k.method), k.AlgorithmID, k.PartyUInfo, k.PartyVInfo);
 #ifndef NDEBUG
 		printf("Ss %s\n", Crypto::toHex(k.publicKey).c_str());
-		printf("Ksr %s\n", Crypto::toHex(sharedSecret).c_str());
 		printf("Concat %s\n", Crypto::toHex(derived).c_str());
 #endif
 		std::vector<uchar> transport = Crypto::AESWrap(derived, k.cipher, false);

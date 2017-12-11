@@ -10,6 +10,7 @@
 
 struct CDOCWriter::CDOCWriterPrivate: public Writer
 {
+	CDOCWriterPrivate(const std::string &file): Writer(file) {}
 	using Writer::Writer;
 	static const NS DENC, DS, XENC11, DSIG11;
 	std::string method, documentFormat = "ENCDOC-XML|1.1";

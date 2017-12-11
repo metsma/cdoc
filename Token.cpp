@@ -8,12 +8,26 @@
 #include <openssl/ssl.h>
 
 #ifdef _WIN32
+#include <Windows.h>
+#include <wincrypt.h>
+#include <cryptuiapi.h>
 #else
 #include <dlfcn.h>
 #endif
 
 Token::Token() = default;
 Token::~Token() = default;
+std::vector<uchar> Token::derive(const std::vector<uchar> &) const
+{
+	return std::vector<uchar>();
+}
+
+std::vector<uchar> Token::deriveConcatKDF(const std::vector<uchar> &publicKey, const std::string &digest, uint32_t keySize,
+	const std::vector<uchar> &algorithmID, const std::vector<uchar> &partyUInfo, const std::vector<uchar> &partyVInfo) const
+{
+	return Crypto::concatKDF(digest, keySize,  derive(publicKey), algorithmID, partyUInfo, partyVInfo);
+}
+
 
 
 class PKCS11Token::PKCS11TokenPrivate
@@ -268,3 +282,262 @@ std::vector<uchar> PKCS12Token::derive(const std::vector<uchar> &publicKey) cons
 
 	return Crypto::deriveSharedSecret(pkey.get(), peerPKey.get());
 }
+
+#ifdef _WIN32
+extern "C" {
+
+typedef BOOL (WINAPI * PFNCCERTDISPLAYPROC)(
+  __in  PCCERT_CONTEXT pCertContext,
+  __in  HWND hWndSelCertDlg,
+  __in  void *pvCallbackData
+);
+
+typedef struct _CRYPTUI_SELECTCERTIFICATE_STRUCT {
+  DWORD               dwSize;
+  HWND                hwndParent;
+  DWORD               dwFlags;
+  LPCWSTR             szTitle;
+  DWORD               dwDontUseColumn;
+  LPCWSTR             szDisplayString;
+  PFNCFILTERPROC      pFilterCallback;
+  PFNCCERTDISPLAYPROC pDisplayCallback;
+  void *              pvCallbackData;
+  DWORD               cDisplayStores;
+  HCERTSTORE *        rghDisplayStores;
+  DWORD               cStores;
+  HCERTSTORE *        rghStores;
+  DWORD               cPropSheetPages;
+  LPCPROPSHEETPAGEW   rgPropSheetPages;
+  HCERTSTORE          hSelectedCertStore;
+} CRYPTUI_SELECTCERTIFICATE_STRUCT, *PCRYPTUI_SELECTCERTIFICATE_STRUCT;
+
+typedef const CRYPTUI_SELECTCERTIFICATE_STRUCT
+  *PCCRYPTUI_SELECTCERTIFICATE_STRUCT;
+
+PCCERT_CONTEXT WINAPI CryptUIDlgSelectCertificateW(
+  __in  PCCRYPTUI_SELECTCERTIFICATE_STRUCT pcsc
+);
+
+#define CryptUIDlgSelectCertificate CryptUIDlgSelectCertificateW
+
+}  // extern "C"
+
+class WinToken::WinTokenPrivate
+{
+public:
+	static BOOL WINAPI CertFilter(PCCERT_CONTEXT cert,
+		BOOL */*is_initial_selected_cert*/, void */*callback_data*/)
+	{
+		BYTE keyUsage = 0;
+		if(!CertGetIntendedKeyUsage(X509_ASN_ENCODING | PKCS_7_ASN_ENCODING, cert->pCertInfo, &keyUsage, 1))
+			return false;
+		if((keyUsage & (CERT_KEY_ENCIPHERMENT_KEY_USAGE|CERT_KEY_AGREEMENT_KEY_USAGE)) == 0)
+			return false;
+
+		DWORD flags = CRYPT_ACQUIRE_PREFER_NCRYPT_KEY_FLAG|CRYPT_ACQUIRE_COMPARE_KEY_FLAG|CRYPT_ACQUIRE_SILENT_FLAG;
+		HCRYPTPROV_OR_NCRYPT_KEY_HANDLE key = 0;
+		DWORD spec = 0;
+		BOOL freeKey = false;
+		CryptAcquireCertificatePrivateKey(cert, flags, 0, &key, &spec, &freeKey);
+		if(!key)
+			return false;
+		switch(spec)
+		{
+		case CERT_NCRYPT_KEY_SPEC:
+			if(freeKey)
+				NCryptFreeObject(key);
+			break;
+		case AT_KEYEXCHANGE:
+		case AT_SIGNATURE:
+		default:
+			if(freeKey)
+				CryptReleaseContext(key, 0);
+			break;
+		}
+		return true;
+	}
+	PCCERT_CONTEXT cert = nullptr;
+	HCRYPTPROV_OR_NCRYPT_KEY_HANDLE key = 0;
+	DWORD spec = 0;
+	BOOL freeKey = false;
+};
+
+WinToken::WinToken(bool ui, const std::string &pass)
+	: d(new WinTokenPrivate)
+{
+	HCERTSTORE store = CertOpenSystemStore(0, L"MY");
+	if(!store)
+		return;
+
+	PCCERT_CONTEXT cert = nullptr;
+	if(ui)
+	{
+		CRYPTUI_SELECTCERTIFICATE_STRUCT pcsc = { sizeof(pcsc) };
+		pcsc.pFilterCallback = WinTokenPrivate::CertFilter;
+		pcsc.pvCallbackData = d;
+		pcsc.cDisplayStores = 1;
+		pcsc.rghDisplayStores = &store;
+		cert = CryptUIDlgSelectCertificate(&pcsc);
+		DWORD flags = CRYPT_ACQUIRE_PREFER_NCRYPT_KEY_FLAG|CRYPT_ACQUIRE_COMPARE_KEY_FLAG|CRYPT_ACQUIRE_SILENT_FLAG;
+		if(!CryptAcquireCertificatePrivateKey(cert, flags, 0, &d->key, &d->spec, &d->freeKey) || !d->key)
+			return;
+	}
+	else
+	{
+		while((cert = CertFindCertificateInStore(store, X509_ASN_ENCODING|PKCS_7_ASN_ENCODING, 0, CERT_FIND_ANY, nullptr, cert)))
+		{
+			BYTE keyUsage = 0;
+			if(!CertGetIntendedKeyUsage(X509_ASN_ENCODING | PKCS_7_ASN_ENCODING, cert->pCertInfo, &keyUsage, 1))
+				continue;
+			if((keyUsage & (CERT_KEY_ENCIPHERMENT_KEY_USAGE|CERT_KEY_AGREEMENT_KEY_USAGE)) == 0)
+				continue;
+			DWORD flags = CRYPT_ACQUIRE_PREFER_NCRYPT_KEY_FLAG|CRYPT_ACQUIRE_COMPARE_KEY_FLAG|CRYPT_ACQUIRE_SILENT_FLAG;
+			if(!CryptAcquireCertificatePrivateKey(cert, flags, 0, &d->key, &d->spec, &d->freeKey) || !d->key)
+				continue;
+			break;
+		}
+	}
+	if(d->spec == CERT_NCRYPT_KEY_SPEC)
+	{
+		int len = MultiByteToWideChar(CP_UTF8, 0, pass.data(), int(pass.size()), 0, 0);
+		std::wstring out(size_t(len), 0);
+		MultiByteToWideChar(CP_UTF8, 0, pass.data(), int(pass.size()), &out[0], len);
+		if(NCryptSetProperty(d->key, NCRYPT_PIN_PROPERTY, PBYTE(out.c_str()), DWORD(out.size()), 0) != ERROR_SUCCESS)
+			return;
+	}
+	else
+	{
+		if(!CryptSetProvParam(d->key, d->spec == AT_SIGNATURE ? PP_SIGNATURE_PIN : PP_KEYEXCHANGE_PIN, LPBYTE(pass.c_str()), 0))
+			return;
+	}
+	if(d->key)
+		d->cert = cert;
+}
+
+WinToken::~WinToken()
+{
+	switch(d->spec)
+	{
+	case CERT_NCRYPT_KEY_SPEC:
+		if(d->freeKey)
+			NCryptFreeObject(d->key);
+		break;
+	case AT_KEYEXCHANGE:
+	case AT_SIGNATURE:
+	default:
+		if(d->freeKey)
+			CryptReleaseContext(d->key, 0);
+		break;
+	}
+	CertFreeCertificateContext(d->cert);
+	delete d;
+}
+
+std::vector<uchar> WinToken::cert() const
+{
+	return std::vector<uchar>(d->cert->pbCertEncoded, d->cert->pbCertEncoded + d->cert->cbCertEncoded);
+}
+
+std::vector<uchar> WinToken::decrypt(const std::vector<uchar> &data) const
+{
+	std::vector<uchar> result;
+	if(!d->key)
+		return result;
+
+	DWORD size = data.size();
+	SECURITY_STATUS err = 0;
+	switch(d->spec)
+	{
+	case CERT_NCRYPT_KEY_SPEC:
+	{
+		result.resize(size);
+		err = NCryptDecrypt(d->key, PBYTE(data.data()), data.size(), 0,
+			result.data(), result.size(), &size, NCRYPT_PAD_PKCS1_FLAG);
+		break;
+	}
+	case AT_KEYEXCHANGE:
+	case AT_SIGNATURE:
+	default:
+	{
+		result = data;
+		std::reverse(result.begin(), result.end());
+		if(!CryptDecrypt(d->key, 0, true, 0, result.data(), &size))
+			err = SECURITY_STATUS(GetLastError());
+		break;
+	}
+	}
+
+	if(err == ERROR_SUCCESS)
+		result.resize(size);
+	else
+		result.clear();
+	return result;
+}
+
+std::vector<uchar> WinToken::deriveConcatKDF(const std::vector<uchar> &publicKey, const std::string &digest, unsigned int keySize,
+	const std::vector<uchar> &algorithmID, const std::vector<uchar> &partyUInfo, const std::vector<uchar> &partyVInfo) const
+{
+	std::vector<uchar> derived;
+	if(!d->key)
+		return derived;
+
+	BCRYPT_ECCKEY_BLOB oh = { BCRYPT_ECDH_PUBLIC_P384_MAGIC, ULONG((publicKey.size() - 1) / 2) };
+	switch ((publicKey.size() - 1) * 4)
+	{
+	case 256: oh.dwMagic = BCRYPT_ECDH_PUBLIC_P256_MAGIC; break;
+	case 384: oh.dwMagic = BCRYPT_ECDH_PUBLIC_P384_MAGIC; break;
+	case 521: oh.dwMagic = BCRYPT_ECDH_PUBLIC_P521_MAGIC; break;
+	default:break;
+	}
+	std::vector<uchar> blob((uchar*)&oh, (uchar*)&oh + sizeof(BCRYPT_ECCKEY_BLOB));
+	blob.insert(blob.cend(), publicKey.cbegin() + 1, publicKey.cend());
+
+	NCRYPT_PROV_HANDLE prov = 0;
+	DWORD size = 0;
+	if(NCryptGetProperty(d->key, NCRYPT_PROVIDER_HANDLE_PROPERTY, PBYTE(&prov), sizeof(prov), &size, 0))
+		return derived;
+
+	NCRYPT_KEY_HANDLE publicKeyHandle = 0;
+	NCRYPT_SECRET_HANDLE sharedSecret = 0;
+	SECURITY_STATUS err = 0;
+	if((err = NCryptImportKey(prov, 0, BCRYPT_ECCPUBLIC_BLOB, 0, &publicKeyHandle, PBYTE(blob.data()), DWORD(blob.size()), 0)) ||
+		(err = NCryptSecretAgreement(d->key, publicKeyHandle, &sharedSecret, 0)))
+	{
+		if(publicKeyHandle)
+			NCryptFreeObject(publicKeyHandle);
+		NCryptFreeObject(prov);
+		return derived;
+	}
+
+	std::vector<BCryptBuffer> paramValues{
+		{ULONG(algorithmID.size()), KDF_ALGORITHMID, PBYTE(algorithmID.data())},
+		{ULONG(partyUInfo.size()), KDF_PARTYUINFO, PBYTE(partyUInfo.data())},
+		{ULONG(partyVInfo.size()), KDF_PARTYVINFO, PBYTE(partyVInfo.data())},
+	};
+	if(digest == "http://www.w3.org/2001/04/xmlenc#sha256")
+		paramValues.push_back({ULONG(sizeof(BCRYPT_SHA256_ALGORITHM)), KDF_HASH_ALGORITHM, PBYTE(BCRYPT_SHA256_ALGORITHM)});
+	if(digest == "http://www.w3.org/2001/04/xmlenc#sha384")
+		paramValues.push_back({ULONG(sizeof(BCRYPT_SHA384_ALGORITHM)), KDF_HASH_ALGORITHM, PBYTE(BCRYPT_SHA384_ALGORITHM)});
+	if(digest == "http://www.w3.org/2001/04/xmlenc#sha512")
+		paramValues.push_back({ULONG(sizeof(BCRYPT_SHA512_ALGORITHM)), KDF_HASH_ALGORITHM, PBYTE(BCRYPT_SHA512_ALGORITHM)});
+	BCryptBufferDesc params;
+	params.ulVersion = BCRYPTBUFFER_VERSION;
+	params.cBuffers = ULONG(paramValues.size());
+	params.pBuffers = paramValues.data();
+
+	size = 0;
+	if((err = NCryptDeriveKey(sharedSecret, BCRYPT_KDF_SP80056A_CONCAT, &params, nullptr, 0, &size, 0)) == 0)
+	{
+		derived.resize(int(size));
+		if((err = NCryptDeriveKey(sharedSecret, BCRYPT_KDF_SP80056A_CONCAT, &params, PBYTE(derived.data()), size, &size, 0)) == 0)
+			derived.resize(keySize);
+		else
+			derived.clear();
+	}
+
+	NCryptFreeObject(publicKeyHandle);
+	NCryptFreeObject(sharedSecret);
+	NCryptFreeObject(prov);
+	return derived;
+}
+#endif

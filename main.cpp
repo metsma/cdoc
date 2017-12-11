@@ -8,7 +8,7 @@
 
 static std::vector<unsigned char> readFile(const std::string &path)
 {
-	std::ifstream f(path);
+	std::ifstream f(path, std::ifstream::binary);
 	f.seekg(0, std::ifstream::end);
 	std::vector<unsigned char> data(size_t(f.tellg()), 0);
 	f.clear();
@@ -34,6 +34,10 @@ int main(int argc, char *argv[])
 			token.reset(new PKCS11Token(argv[3], argv[4]));
 		else if (strcmp(argv[2], "pkcs12") == 0)
 			token.reset(new PKCS12Token(argv[3], argv[4]));
+#ifdef _WIN32
+		else if (strcmp(argv[2], "win") == 0)
+			token.reset(new WinToken(strcmp(argv[3], "ui") == 0, argv[4]));
+#endif
 		CDOCReader r(argv[5]);
 		std::ofstream f(argv[6]);
 		std::vector<unsigned char> data = r.decryptData(token.get());
@@ -43,6 +47,9 @@ int main(int argc, char *argv[])
 	{
 		std::cout
 			<< "cdoc encrypt X509DerRecipientCert InFile OutFile" << std::endl
+#ifdef _WIN32
+			<< "cdoc decrypt win [ui|noui] pin InFile OutFile" << std::endl
+#endif
 			<< "cdoc decrypt pkcs11 path/to/so pin InFile OutFile" << std::endl
 			<< "cdoc decrypt pkcs12 path/to/pkcs12 pin InFile OutFile" << std::endl;
 	}

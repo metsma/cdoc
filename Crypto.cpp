@@ -105,6 +105,7 @@ std::vector<uchar> Crypto::concatKDF(const std::string &hashAlg, uint32_t keyDat
 	const std::vector<uchar> &AlgorithmID, const std::vector<uchar> &PartyUInfo, const std::vector<uchar> &PartyVInfo)
 {
 #ifndef NDEBUG
+	printf("Ksr %s\n", Crypto::toHex(z).c_str());
 	printf("AlgorithmID %s\n", Crypto::toHex(AlgorithmID).c_str());
 	printf("PartyUInfo %s\n", Crypto::toHex(PartyUInfo).c_str());
 	printf("PartyVInfo %s\n", Crypto::toHex(PartyVInfo).c_str());

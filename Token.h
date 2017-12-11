@@ -6,6 +6,9 @@
 #include <vector>
 
 typedef unsigned char uchar;
+#define DISABLE_COPY(Class) \
+	Class(const Class &) = delete; \
+	Class &operator=(const Class &) = delete
 
 class CDOC_EXPORT Token
 {
@@ -13,8 +16,11 @@ public:
 	virtual ~Token();
 	virtual std::vector<uchar> cert() const = 0;
 	virtual std::vector<uchar> decrypt(const std::vector<uchar> &data) const = 0;
-	virtual std::vector<uchar> derive(const std::vector<uchar> &publicKey) const = 0;
+	virtual std::vector<uchar> derive(const std::vector<uchar> &publicKey) const;
+	virtual std::vector<uchar> deriveConcatKDF(const std::vector<uchar> &publicKey, const std::string &digest, unsigned int keySize,
+		const std::vector<uchar> &algorithmID, const std::vector<uchar> &partyUInfo, const std::vector<uchar> &partyVInfo) const;
 protected:
+	DISABLE_COPY(Token);
 	Token();
 };
 
@@ -27,6 +33,7 @@ public:
 	std::vector<uchar> decrypt(const std::vector<uchar> &data) const override;
 	std::vector<uchar> derive(const std::vector<uchar> &publicKey) const override;
 private:
+	DISABLE_COPY(PKCS11Token);
 	class PKCS11TokenPrivate;
 	PKCS11TokenPrivate *d;
 };
@@ -40,14 +47,24 @@ public:
 	std::vector<uchar> decrypt(const std::vector<uchar> &data) const override;
 	std::vector<uchar> derive(const std::vector<uchar> &publicKey) const override;
 private:
+	DISABLE_COPY(PKCS12Token);
 	class PKCS12TokenPrivate;
 	PKCS12TokenPrivate *d;
 };
 
 #ifdef _WIN32
-class WinToken: public Token
+class CDOC_EXPORT WinToken: public Token
 {
 public:
-	WinToken(const std::string &pass) {}
+	WinToken(bool ui, const std::string &pass);
+	~WinToken();
+	virtual std::vector<uchar> cert() const override;
+	std::vector<uchar> decrypt(const std::vector<uchar> &data) const override;
+	std::vector<uchar> deriveConcatKDF(const std::vector<uchar> &publicKey, const std::string &digest, unsigned int keySize,
+		const std::vector<uchar> &algorithmID, const std::vector<uchar> &partyUInfo, const std::vector<uchar> &partyVInfo) const override;
+private:
+	DISABLE_COPY(WinToken);
+	class WinTokenPrivate;
+	WinTokenPrivate *d;
 };
 #endif
