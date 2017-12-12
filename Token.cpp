@@ -84,12 +84,12 @@ public:
 		};
 		if(!id.empty())
 			attr.push_back({ CKA_ID, CK_VOID_PTR(id.data()), CK_ULONG(id.size()) });
-		if(f->C_FindObjectsInit(session, attr.data(), attr.size()) != CKR_OK)
+		if(f->C_FindObjectsInit(session, attr.data(), CK_ULONG(attr.size())) != CKR_OK)
 			return result;
 
 		CK_ULONG count = 32;
 		result.resize(count);
-		if(f->C_FindObjects(session, result.data(), result.size(), &count) == CKR_OK)
+		if(f->C_FindObjects(session, result.data(), CK_ULONG(result.size()), &count) == CKR_OK)
 			result.resize(count);
 		else
 			result.clear();
@@ -219,11 +219,11 @@ std::vector<uchar> PKCS11Token::decrypt(const std::vector<uchar> &data) const
 		return result;
 
 	CK_ULONG size = 0;
-	if(d->f->C_Decrypt(d->session, CK_CHAR_PTR(data.data()), data.size(), 0, &size) != CKR_OK)
+	if(d->f->C_Decrypt(d->session, CK_CHAR_PTR(data.data()), CK_ULONG(data.size()), 0, &size) != CKR_OK)
 		return result;
 
 	result.resize(size);
-	if(d->f->C_Decrypt(d->session, CK_CHAR_PTR(data.data()), data.size(), result.data(), &size) != CKR_OK)
+	if(d->f->C_Decrypt(d->session, CK_CHAR_PTR(data.data()), CK_ULONG(data.size()), result.data(), &size) != CKR_OK)
 		result.clear();
 	return result;
 }
@@ -511,15 +511,15 @@ std::vector<uchar> WinToken::decrypt(const std::vector<uchar> &data) const
 	if(!d->key)
 		return result;
 
-	DWORD size = data.size();
+	DWORD size = DWORD(data.size());
 	SECURITY_STATUS err = 0;
 	switch(d->spec)
 	{
 	case CERT_NCRYPT_KEY_SPEC:
 	{
 		result.resize(size);
-		err = NCryptDecrypt(d->key, PBYTE(data.data()), data.size(), 0,
-			result.data(), result.size(), &size, NCRYPT_PAD_PKCS1_FLAG);
+		err = NCryptDecrypt(d->key, PBYTE(data.data()), DWORD(data.size()), 0,
+			result.data(), DWORD(result.size()), &size, NCRYPT_PAD_PKCS1_FLAG);
 		break;
 	}
 	case AT_KEYEXCHANGE:

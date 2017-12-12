@@ -8,12 +8,12 @@ include(GNUInstallDirs)
 include_directories(${LIBXML2_INCLUDE_DIR} ${OPENSSL_INCLUDE_DIR} ${CMAKE_BINARY_DIR})
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED YES)
-set(PUBLIC_HEADER Token.h CDOCReader.h CDOCWriter.h ${CMAKE_BINARY_DIR}/CDOCExport.h)
+set(PUBLIC_HEADER Token.h CDOCReader.h CDOCWriter.h DDOCWriter.h ${CMAKE_BINARY_DIR}/CDOCExport.h)
 if(WIN32)
 	add_definitions(-DUNICODE -DWIN32_LEAN_AND_MEAN)
 	list(APPEND LIBS Crypt32 NCrypt cryptui)
 endif()
-add_library(cdoc SHARED Writer.cpp CDOCWriter.cpp CDOCReader.cpp Crypto.cpp Token.cpp ${PUBLIC_HEADER})
+add_library(cdoc SHARED Writer.cpp CDOCWriter.cpp CDOCReader.cpp DDOCWriter.cpp Crypto.cpp Token.cpp ${PUBLIC_HEADER})
 set_target_properties(cdoc PROPERTIES
 	VERSION ${PROJECT_VERSION}
 	SOVERSION 0

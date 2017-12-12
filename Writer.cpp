@@ -34,7 +34,7 @@ void Writer::writeStartElement(const NS &ns, const std::string &name, const std:
 		pos->second++;
 	else
 		pos = d->nsmap.insert({ns.prefix, 1}).first;
-	xmlTextWriterStartElementNS(d->w, pcxmlChar(ns.prefix.c_str()),
+	xmlTextWriterStartElementNS(d->w, ns.prefix.empty() ? nullptr : pcxmlChar(ns.prefix.c_str()),
 		pcxmlChar(name.c_str()), pos->second > 1 ? nullptr : pcxmlChar(ns.ns.c_str()));
 	for(auto i = attr.cbegin(), end = attr.cend(); i != end; ++i)
 		xmlTextWriterWriteAttribute(d->w, pcxmlChar(i->first.c_str()), pcxmlChar(i->second.c_str()));
@@ -64,9 +64,9 @@ void Writer::writeElement(const NS &ns, const std::string &name, const std::map<
 	writeEndElement(ns);
 }
 
-void Writer::writeBase64Element(const NS &ns, const std::string &name, const std::vector<xmlChar> &data)
+void Writer::writeBase64Element(const NS &ns, const std::string &name, const std::vector<xmlChar> &data, const std::map<std::string, std::string> &attr)
 {
-	writeTextElement(ns, name, {}, Crypto::encodeBase64(data));
+	writeTextElement(ns, name, attr, Crypto::encodeBase64(data));
 #if 0
 	writeStartElement(ns, name, {});
 	xmlTextWriterWriteBase64(d->w, (const char*)data.data(), 0, int(data.size()));

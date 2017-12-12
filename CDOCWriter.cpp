@@ -5,9 +5,6 @@
 
 #include <openssl/x509.h>
 
-#include <iomanip>
-#include <sstream>
-
 /**
  * @class CDOCWriter
  * @brief CDOCWriter is used for encrypt data.
