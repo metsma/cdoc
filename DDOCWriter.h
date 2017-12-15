@@ -1,17 +1,17 @@
 #pragma once
 
-#include <CDOCExport.h>
+#include "Writer.h"
 
 #include <string>
-#include <vector>
 
-class CDOC_EXPORT DDOCWriter
+class DDOCWriter: public Writer
 {
 public:
 	DDOCWriter(const std::string &file);
 	~DDOCWriter();
 
 	void addFile(const std::string &name, const std::string &mime, const std::vector<unsigned char> &data);
+	void endDocument() override;
 
 private:
 	DDOCWriter(const DDOCWriter &) = delete;

@@ -4,6 +4,7 @@
 #include <openssl/evp.h>
 #include <openssl/rand.h>
 #include <openssl/sha.h>
+#include <openssl/x509.h>
 
 #include <cmath>
 
@@ -117,6 +118,27 @@ std::vector<uchar> Crypto::concatKDF(const std::string &hashAlg, uint32_t keyDat
 	return concatKDF(hashAlg, keyDataLen, z, otherInfo);
 }
 
+std::vector<uchar> Crypto::encrypt(const std::string &method, const Key &key, const std::vector<uchar> &data)
+{
+	const EVP_CIPHER *c = cipher(method);
+	SCOPE(EVP_CIPHER_CTX, ctx, EVP_CIPHER_CTX_new());
+	EVP_CipherInit(ctx.get(), c, key.key.data(), key.iv.data(), 1);
+	int size = 0;
+	std::vector<uchar> result(data.size() + size_t(EVP_CIPHER_CTX_block_size(ctx.get())), 0);
+	EVP_CipherUpdate(ctx.get(), result.data(), &size, data.data(), int(data.size()));
+	int size2 = 0;
+	EVP_CipherFinal(ctx.get(), &result[size_t(size)], &size2);
+	result.resize(size_t(size + size2));
+	result.insert(result.cbegin(), key.iv.cbegin(), key.iv.cend());
+	if(EVP_CIPHER_mode(c) == EVP_CIPH_GCM_MODE)
+	{
+		std::vector<uchar> tag(16, 0);
+		EVP_CIPHER_CTX_ctrl(ctx.get(), EVP_CTRL_GCM_GET_TAG, int(tag.size()), tag.data());
+		result.insert(result.cend(), tag.cbegin(), tag.cend());
+	}
+	return result;
+}
+
 std::vector<uchar> Crypto::decodeBase64(const uchar *data)
 {
 	std::vector<uchar> result(strlen((const char*)data), 0);
@@ -129,7 +151,7 @@ std::vector<uchar> Crypto::decodeBase64(const uchar *data)
 		return result;
 	}
 	if(EVP_DecodeFinal(&ctx, result.data(), &size2) == 1)
-		result.resize(size1 + size2);
+		result.resize(size_t(size1 + size2));
 	else
 		result.clear();
 	return result;
@@ -149,14 +171,6 @@ std::vector<uchar> Crypto::deriveSharedSecret(EVP_PKEY *pkey, EVP_PKEY *peerPKey
 	if(EVP_PKEY_derive(ctx.get(), sharedSecret.data(), &sharedSecretLen) <= 0)
 		sharedSecret.clear();
 	return sharedSecret;
-}
-
-std::string Crypto::encodeBase64(const std::vector<uchar> &data)
-{
-	std::string result(((data.size() + 2) / 3) * 4, 0);
-	int size = EVP_EncodeBlock((uchar*)&result[0], data.data(), int(data.size()));
-	result.resize(size_t(size));
-	return result;
 }
 
 Crypto::Key Crypto::generateKey(const std::string &method)
@@ -184,4 +198,18 @@ uint32_t Crypto::keySize(const std::string &algo)
 	if(algo == KWAES192_MTH) return 24;
 	if(algo == KWAES256_MTH) return 32;
 	return 0;
+}
+
+std::string Crypto::toBase64(const std::vector<uchar> &data)
+{
+	std::string result(((data.size() + 2) / 3) * 4, 0);
+	int size = EVP_EncodeBlock((uchar*)&result[0], data.data(), int(data.size()));
+	result.resize(size_t(size));
+	return result;
+}
+
+X509* Crypto::toX509(const std::vector<uchar> &data)
+{
+	const uchar *p = data.data();
+	return d2i_X509(nullptr, &p, int(data.size()));
 }

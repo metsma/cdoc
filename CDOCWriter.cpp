@@ -1,6 +1,7 @@
 #include "CDOCWriter.h"
 
 #include "Crypto.h"
+#include "DDOCWriter.h"
 #include "Writer.h"
 
 #include <openssl/x509.h>
@@ -29,12 +30,13 @@ const Writer::NS CDOCWriter::CDOCWriterPrivate::DSIG11{ "dsig11", "http://www.w3
  * CDOCWriter constructor.
  * @param file File to be created
  * @param method Encrypton method to be used
+ * @param mime Content type of encrypted data
  */
-CDOCWriter::CDOCWriter(const std::string &file, const std::string &method)
+CDOCWriter::CDOCWriter(const std::string &file, const std::string &method, const std::string &mime)
 	: d(new CDOCWriterPrivate(file))
 {
 	d->transportKey = Crypto::generateKey(d->method = method);
-	d->writeStartElement(d->DENC, "EncryptedData", {{"MimeType", "application/octet-stream"}});
+	d->writeStartElement(d->DENC, "EncryptedData", {{"MimeType", mime}});
 	d->writeElement(d->DENC, "EncryptionMethod", {{"Algorithm", method}});
 	d->writeStartElement(d->DS, "KeyInfo", {});
 }
@@ -50,9 +52,7 @@ CDOCWriter::~CDOCWriter()
  */
 void CDOCWriter::addRecipient(const std::vector<uchar> &recipient)
 {
-	const uchar *p = recipient.data();
-	SCOPE(X509, peerCert, d2i_X509(nullptr, &p, int(recipient.size())));
-
+	SCOPE(X509, peerCert, Crypto::toX509(recipient));
 	X509_NAME *name = X509_get_subject_name(peerCert.get());
 	int pos = X509_NAME_get_index_by_NID(name, NID_commonName, 0);
 	X509_NAME_ENTRY *e = X509_NAME_get_entry(name, pos);
@@ -155,41 +155,32 @@ void CDOCWriter::addRecipient(const std::vector<uchar> &recipient)
 
 /**
  * Encrypt data
- * @param name Filename of encrypted data
- * @param data File content to be encrypted
+ * @param files List of files to encrypt
  */
-void CDOCWriter::encryptData(const std::string &name, const std::vector<uchar> &data)
+void CDOCWriter::encryptData(const std::vector<File> &files)
 {
 	d->writeEndElement(d->DS); // KeyInfo
 
-	const EVP_CIPHER *cipher = Crypto::cipher(d->method);
-	SCOPE(EVP_CIPHER_CTX, ctx, EVP_CIPHER_CTX_new());
-	EVP_CipherInit(ctx.get(), cipher, d->transportKey.key.data(), d->transportKey.iv.data(), 1);
-	int size = 0;
-	std::vector<uchar> result(data.size() + size_t(EVP_CIPHER_CTX_block_size(ctx.get())), 0);
-	EVP_CipherUpdate(ctx.get(), result.data(), &size, data.data(), int(data.size()));
-	int size2 = 0;
-	EVP_CipherFinal(ctx.get(), &result[size_t(size)], &size2);
-	result.resize(size_t(size + size2));
-	result.insert(result.cbegin(), d->transportKey.iv.cbegin(), d->transportKey.iv.cend());
-	if(EVP_CIPHER_mode(cipher) == EVP_CIPH_GCM_MODE)
-	{
-		std::vector<uchar> tag(16, 0);
-		EVP_CIPHER_CTX_ctrl(ctx.get(), EVP_CTRL_GCM_GET_TAG, int(tag.size()), tag.data());
-		result.insert(result.cend(), tag.cbegin(), tag.cend());
-	}
-
+	std::vector<uchar> data;
 	d->writeElement(d->DENC, "CipherData", [&]{
-		d->writeBase64Element(d->DENC, "CipherValue", result);
+		if(files.size() > 1)
+		{
+			DDOCWriter ddoc("");
+			for(const File &file: files)
+				ddoc.addFile(file.filename, file.mime, file.data);
+			ddoc.endDocument();
+			d->writeBase64Element(d->DENC, "CipherValue", Crypto::encrypt(d->method, d->transportKey, ddoc.data()));
+		}
 	});
-
 	d->writeElement(d->DENC, "EncryptionProperties", [&]{
 		d->writeTextElement(d->DENC, "EncryptionProperty", {{"Name", "LibraryVersion"}}, "cdoc|0.0.1");
 		d->writeTextElement(d->DENC, "EncryptionProperty", {{"Name", "DocumentFormat"}}, d->documentFormat);
-		d->writeTextElement(d->DENC, "EncryptionProperty", {{"Name", "Filename"}}, name);
-		d->writeTextElement(d->DENC, "EncryptionProperty", {{"Name", "orig_file"}},
-			name + "|" + std::to_string(data.size()) + "|application/octet-stream|D0");
+		d->writeTextElement(d->DENC, "EncryptionProperty", {{"Name", "Filename"}}, "tmp.ddoc");
+		for(const File &file: files)
+		{
+			d->writeTextElement(d->DENC, "EncryptionProperty", {{"Name", "orig_file"}},
+				file.filename + "|" + std::to_string(file.data.size()) + "|" + file.mime + "|D0");
+		}
 	});
-
 	d->writeEndElement(d->DENC); // EncryptedData
 }

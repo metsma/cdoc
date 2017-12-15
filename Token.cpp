@@ -146,7 +146,7 @@ PKCS11Token::PKCS11Token(const std::string &path, const std::string &password)
 	d->f->C_Initialize(&init_args);
 
 	CK_ULONG size = 0;
-	if(d->f->C_GetSlotList(true, 0, &size) != CKR_OK)
+	if(d->f->C_GetSlotList(true, nullptr, &size) != CKR_OK)
 		return;
 	std::vector<CK_SLOT_ID> slots(size, 0);
 	if(size && d->f->C_GetSlotList(true, slots.data(), &size) != CKR_OK)
@@ -268,8 +268,8 @@ std::vector<uchar> PKCS11Token::derive(const std::vector<uchar> &publicKey) cons
 class PKCS12Token::PKCS12TokenPrivate
 {
 public:
-	std::unique_ptr<EVP_PKEY, decltype(&EVP_PKEY_free)> pkey = std::unique_ptr<EVP_PKEY, decltype(&EVP_PKEY_free)>(nullptr, EVP_PKEY_free);
-	std::unique_ptr<X509, decltype(&X509_free)> cert = std::unique_ptr<X509, decltype(&X509_free)>(nullptr, X509_free);
+	std::unique_ptr<EVP_PKEY, decltype(&EVP_PKEY_free)> pkey { nullptr, EVP_PKEY_free };
+	std::unique_ptr<X509, decltype(&X509_free)> cert { nullptr, X509_free };
 	std::string pass;
 };
 

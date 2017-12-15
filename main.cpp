@@ -13,19 +13,25 @@ static std::vector<unsigned char> readFile(const std::string &path)
 	std::vector<unsigned char> data(size_t(f.tellg()), 0);
 	f.clear();
 	f.seekg(0);
-	f.read((char*)data.data(), data.size());
+	f.read((char*)data.data(), std::streamsize(data.size()));
 	return data;
 }
 
 int main(int argc, char *argv[])
 {
-	if(argc == 5 && strcmp(argv[1], "encrypt") == 0)
+	if(argc >= 5 && strcmp(argv[1], "encrypt") == 0)
 	{
-		CDOCWriter w(argv[4], "http://www.w3.org/2009/xmlenc11#aes256-gcm");
+		std::vector<CDOCWriter::File> files;
+		for(int i = 3; i < argc - 1; ++i)
+		{
+			std::string inFile = argv[i];
+			size_t pos = inFile.find_last_of("/\\");
+			files.push_back({ pos == std::string::npos ? inFile : inFile.substr(pos + 1), "application/octet-stream", readFile(inFile)});
+		}
+		CDOCWriter w(argv[argc-1], "http://www.w3.org/2009/xmlenc11#aes256-gcm",
+			files.size() == 1 ? files.cbegin()->mime : "http://www.sk.ee/DigiDoc/v1.3.0/digidoc.xsd");
 		w.addRecipient(readFile(argv[2]));
-		std::string inFile = argv[3];
-		size_t pos = inFile.find_last_of("/\\");
-		w.encryptData(pos == std::string::npos ? inFile : inFile.substr(pos + 1), readFile(inFile));
+		w.encryptData(files);
 	}
 	else if(argc == 7 && strcmp(argv[1], "decrypt") == 0)
 	{
@@ -41,12 +47,12 @@ int main(int argc, char *argv[])
 		CDOCReader r(argv[5]);
 		std::vector<unsigned char> data = r.decryptData(token.get());
 		std::ofstream f(argv[6]);
-		f.write((const char*)data.data(), data.size());
+		f.write((const char*)data.data(), std::streamsize(data.size()));
 	}
 	else
 	{
 		std::cout
-			<< "cdoc encrypt X509DerRecipientCert InFile OutFile" << std::endl
+			<< "cdoc encrypt X509DerRecipientCert InFile [InFile [InFile [...]]] OutFile" << std::endl
 #ifdef _WIN32
 			<< "cdoc decrypt win [ui|noui] pin InFile OutFile" << std::endl
 #endif

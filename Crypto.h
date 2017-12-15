@@ -10,6 +10,7 @@
 typedef unsigned char uchar;
 typedef struct evp_cipher_st EVP_CIPHER;
 typedef struct evp_pkey_st EVP_PKEY;
+typedef struct x509_st X509;
 #define SCOPE(TYPE, VAR, DATA) std::unique_ptr<TYPE,decltype(&TYPE##_free)> VAR(DATA, TYPE##_free)
 
 class Crypto
@@ -27,11 +28,12 @@ public:
 	static std::vector<uchar> concatKDF(const std::string &hashAlg, uint32_t keyDataLen, const std::vector<uchar> &z, const std::vector<uchar> &otherInfo);
 	static std::vector<uchar> concatKDF(const std::string &hashAlg, uint32_t keyDataLen, const std::vector<uchar> &z,
 		const std::vector<uchar> &AlgorithmID, const std::vector<uchar> &PartyUInfo, const std::vector<uchar> &PartyVInfo);
+	static std::vector<uchar> encrypt(const std::string &method, const Key &key, const std::vector<uchar> &data);
 	static std::vector<uchar> decodeBase64(const uchar *data);
 	static std::vector<uchar> deriveSharedSecret(EVP_PKEY *pkey, EVP_PKEY *peerPKey);
-	static std::string encodeBase64(const std::vector<uchar> &data);
 	static Key generateKey(const std::string &method);
 	static uint32_t keySize(const std::string &algo);
+	static std::string toBase64(const std::vector<uchar> &data);
 	template <typename F>
 	static std::string toHex(const F &data)
 	{
@@ -41,4 +43,5 @@ public:
 			os << std::setw(2) << (static_cast<int>(i) & 0xFF);
 		return os.str();
 	}
+	static X509* toX509(const std::vector<uchar> &data);
 };

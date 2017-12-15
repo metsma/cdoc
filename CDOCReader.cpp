@@ -25,8 +25,8 @@ public:
 	{
 		std::string id, recipient, name;
 		std::string method, agreement, derive, concatDigest;
-		std::vector<unsigned char> cert, publicKey, cipher;
-		std::vector<unsigned char> AlgorithmID, PartyUInfo, PartyVInfo;
+		std::vector<uchar> cert, publicKey, cipher;
+		std::vector<uchar> AlgorithmID, PartyUInfo, PartyVInfo;
 	};
 	struct File
 	{
@@ -263,8 +263,7 @@ std::vector<uchar> CDOCReader::decryptData(Token *token)
 			k = key;
 	if(k.cert.empty())
 		return std::vector<uchar>();
-	const uchar *p = k.cert.data();
-	SCOPE(X509, x509, d2i_X509(nullptr, &p, int(k.cert.size())));
+	SCOPE(X509, x509, Crypto::toX509(k.cert));
 	SCOPE(EVP_PKEY, key, X509_get_pubkey(x509.get()));
 	switch(EVP_PKEY_base_id(key.get()))
 	{
@@ -274,16 +273,13 @@ std::vector<uchar> CDOCReader::decryptData(Token *token)
 			Crypto::keySize(k.method), k.AlgorithmID, k.PartyUInfo, k.PartyVInfo);
 #ifndef NDEBUG
 		printf("Ss %s\n", Crypto::toHex(k.publicKey).c_str());
-		printf("Concat %s\n", Crypto::toHex(derived).c_str());
+		printf("ConcatKDF %s\n", Crypto::toHex(derived).c_str());
 #endif
-		std::vector<uchar> transport = Crypto::AESWrap(derived, k.cipher, false);
-		return decryptData(transport);
+		return decryptData(Crypto::AESWrap(derived, k.cipher, false));
 	}
 	case EVP_PKEY_RSA:
-	{
-		std::vector<uchar> transport = token->decrypt(k.cipher);
-		return decryptData(transport);
-	}
-	default: return std::vector<uchar>();
+		return decryptData(token->decrypt(k.cipher));
+	default:
+		return std::vector<uchar>();
 	}
 }

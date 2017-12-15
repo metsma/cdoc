@@ -8,11 +8,17 @@
 class CDOC_EXPORT CDOCWriter
 {
 public:
-	CDOCWriter(const std::string &file, const std::string &method);
+	struct File
+	{
+		std::string filename, mime;
+		std::vector<unsigned char> data;
+	};
+	CDOCWriter(const std::string &file, const std::string &method = "http://www.w3.org/2009/xmlenc11#aes256-gcm",
+		const std::string &mime = "application/octet-stream");
 	~CDOCWriter();
 
 	void addRecipient(const std::vector<unsigned char> &recipient);
-	void encryptData(const std::string &name, const std::vector<unsigned char> &data);
+	void encryptData(const std::vector<File> &files);
 
 private:
 	CDOCWriter(const CDOCWriter &) = delete;
