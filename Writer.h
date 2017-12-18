@@ -14,7 +14,7 @@ public:
 	virtual ~Writer();
 
 	std::vector<unsigned char> data() const;
-	virtual void endDocument();
+	virtual void close();
 	void writeStartElement(const NS &ns, const std::string &name, const std::map<std::string, std::string> &attr);
 	void writeEndElement(const NS &ns);
 	void writeElement(const NS &ns, const std::string &name, const std::function<void()> &f = nullptr);

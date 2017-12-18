@@ -7,6 +7,23 @@
 #include <openssl/x509.h>
 
 /**
+ * @class CDOCWriter::File
+ * @brief File content to be encrypted.
+ */
+/**
+ * @var CDOCWriter::File::filename
+ * Filename of encrypted file
+ */
+/**
+ * @var CDOCWriter::File::mime
+ * Mime type of encrypted file
+ */
+/**
+ * @var CDOCWriter::File::data
+ * Content of encrypted file
+ */
+
+/**
  * @class CDOCWriter
  * @brief CDOCWriter is used for encrypt data.
  */
@@ -168,7 +185,7 @@ void CDOCWriter::encryptData(const std::vector<File> &files)
 			DDOCWriter ddoc("");
 			for(const File &file: files)
 				ddoc.addFile(file.filename, file.mime, file.data);
-			ddoc.endDocument();
+			ddoc.close();
 			d->writeBase64Element(d->DENC, "CipherValue", Crypto::encrypt(d->method, d->transportKey, ddoc.data()));
 		}
 	});

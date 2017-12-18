@@ -29,7 +29,7 @@ Writer::Writer(const std::string &path)
 
 Writer::~Writer()
 {
-	endDocument();
+	close();
 	if(d->buf)
 		xmlBufferFree(d->buf);
 	delete d;
@@ -43,7 +43,7 @@ std::vector<unsigned char> Writer::data() const
 	return result;
 }
 
-void Writer::endDocument()
+void Writer::close()
 {
 	if(!d->w)
 		return;

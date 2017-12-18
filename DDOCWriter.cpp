@@ -31,10 +31,10 @@ DDOCWriter::~DDOCWriter()
 	delete d;
 }
 
-void DDOCWriter::endDocument()
+void DDOCWriter::close()
 {
 	writeEndElement(d->DDOC); // SignedDoc
-	Writer::endDocument();
+	Writer::close();
 }
 
 /**
