@@ -1,0 +1,8 @@
+/*! @mainpage
+  
+CDOC is the C++ library and command line tool  offering encrypting and decrypting according to <a href="https://www.w3.org/TR/xmlenc-core1/">XMLEnc 1.1</a> standard.
+
+Development of the library can be monitored in GitHub environment: <a href="https://github.com/open-eid/cdoc">https://github.com/open-eid/cdoc</a>
+
+Additional documentation about the library can be found from GitHub wiki section, see https://github.com/open-eid/cdoc/wiki
+*/
