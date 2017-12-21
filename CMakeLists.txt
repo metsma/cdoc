@@ -3,6 +3,7 @@ project(cdoc VERSION 0.0.1)
 find_package(Doxygen)
 find_package(LibXml2 REQUIRED)
 find_package(OpenSSL REQUIRED)
+find_package(SWIG)
 include(GenerateExportHeader)
 include(GNUInstallDirs)
 
@@ -10,7 +11,7 @@ set(SIGNCERT "" CACHE STRING "Common name of certificate to used sign binaries, 
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED YES)
 set(PUBLIC_HEADER Token.h CDOCReader.h CDOCWriter.h ${CMAKE_BINARY_DIR}/CDOCExport.h)
-include_directories(${LIBXML2_INCLUDE_DIR} ${OPENSSL_INCLUDE_DIR} ${CMAKE_BINARY_DIR})
+include_directories(${LIBXML2_INCLUDE_DIR} ${OPENSSL_INCLUDE_DIR} ${CMAKE_BINARY_DIR} ${CMAKE_SOURCE_DIR})
 if(WIN32)
 	add_definitions(-DUNICODE -DWIN32_LEAN_AND_MEAN)
 	list(APPEND LIBS Crypt32 NCrypt cryptui)
@@ -60,10 +61,22 @@ install(TARGETS cdoc
 	LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
 	ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
 	RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-	RESOURCE DESTINATION ${CMAKE_INSTALL_DOCDIR}
+    RESOURCE DESTINATION ${CMAKE_INSTALL_DOCDIR}
 	PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/cdoc
 	FRAMEWORK DESTINATION /Library/Frameworks
 )
+
+if(SWIG_FOUND AND WIN32)
+    include(${SWIG_USE_FILE})
+    set(CMAKE_SWIG_FLAGS -dllimport cdoc_csharp -namespace cdoc)
+    set(CMAKE_SWIG_OUTDIR ${CMAKE_CURRENT_BINARY_DIR}/csharp)
+    set_property(SOURCE cdoc.i PROPERTY CPLUSPLUS ON)
+    swig_add_library(cdoc_csharp TYPE SHARED LANGUAGE csharp SOURCES cdoc.i)
+    swig_link_libraries(cdoc_csharp cdoc)
+    set_target_properties(cdoc_csharp PROPERTIES DEBUG_OUTPUT_NAME "cdoc_csharpd")
+    install(TARGETS cdoc_csharp DESTINATION ${CMAKE_INSTALL_BINDIR})
+    install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/csharp/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/cdoc_csharp FILES_MATCHING PATTERN "*.cs")
+endif()
 
 if(APPLE)
 	add_custom_target(codesign DEPENDS cdoc

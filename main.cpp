@@ -21,17 +21,16 @@ int main(int argc, char *argv[])
 {
 	if(argc >= 5 && strcmp(argv[1], "encrypt") == 0)
 	{
-		std::vector<CDOCWriter::File> files;
+		CDOCWriter w(argv[argc-1], "http://www.w3.org/2009/xmlenc11#aes256-gcm",
+			argc > 5 ? "application/octet-stream" : "http://www.sk.ee/DigiDoc/v1.3.0/digidoc.xsd");
 		for(int i = 3; i < argc - 1; ++i)
 		{
 			std::string inFile = argv[i];
 			size_t pos = inFile.find_last_of("/\\");
-			files.push_back({ pos == std::string::npos ? inFile : inFile.substr(pos + 1), "application/octet-stream", readFile(inFile)});
+			w.addFile(pos == std::string::npos ? inFile : inFile.substr(pos + 1), "application/octet-stream", readFile(inFile));
 		}
-		CDOCWriter w(argv[argc-1], "http://www.w3.org/2009/xmlenc11#aes256-gcm",
-			files.size() == 1 ? files.cbegin()->mime : "http://www.sk.ee/DigiDoc/v1.3.0/digidoc.xsd");
 		w.addRecipient(readFile(argv[2]));
-		w.encryptData(files);
+		w.encrypt();
 	}
 	else if(argc == 7 && strcmp(argv[1], "decrypt") == 0)
 	{

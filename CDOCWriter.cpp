@@ -7,23 +7,6 @@
 #include <openssl/x509.h>
 
 /**
- * @class CDOCWriter::File
- * @brief File content to be encrypted.
- */
-/**
- * @var CDOCWriter::File::filename
- * Filename of encrypted file
- */
-/**
- * @var CDOCWriter::File::mime
- * Mime type of encrypted file
- */
-/**
- * @var CDOCWriter::File::data
- * Content of encrypted file
- */
-
-/**
  * @class CDOCWriter
  * @brief CDOCWriter is used for encrypt data.
  */
@@ -34,6 +17,12 @@ struct CDOCWriter::CDOCWriterPrivate: public Writer
 	static const NS DENC, DS, XENC11, DSIG11;
 	std::string method, documentFormat = "ENCDOC-XML|1.1";
 	Crypto::Key transportKey;
+	struct File
+	{
+		std::string filename, mime;
+		std::vector<unsigned char> data;
+	};
+	std::vector<File> files;
 };
 
 const Writer::NS CDOCWriter::CDOCWriterPrivate::DENC{ "denc", "http://www.w3.org/2001/04/xmlenc#" };
@@ -61,6 +50,17 @@ CDOCWriter::CDOCWriter(const std::string &file, const std::string &method, const
 CDOCWriter::~CDOCWriter()
 {
 	delete d;
+}
+
+/**
+ * @var filename Filename of encrypted file
+ * @var mime Mime type of encrypted file
+ * @var data Content of encrypted file
+ */
+void CDOCWriter::addFile(const std::string &filename,
+	const std::string &mime, const std::vector<unsigned char> &data)
+{
+	d->files.push_back({filename, mime, data});
 }
 
 /**
@@ -174,16 +174,16 @@ void CDOCWriter::addRecipient(const std::vector<uchar> &recipient)
  * Encrypt data
  * @param files List of files to encrypt
  */
-void CDOCWriter::encryptData(const std::vector<File> &files)
+void CDOCWriter::encrypt()
 {
 	d->writeEndElement(d->DS); // KeyInfo
 
 	std::vector<uchar> data;
 	d->writeElement(d->DENC, "CipherData", [&]{
-		if(files.size() > 1)
+		if(d->files.size() > 1)
 		{
 			DDOCWriter ddoc("");
-			for(const File &file: files)
+			for(const CDOCWriterPrivate::File &file: d->files)
 				ddoc.addFile(file.filename, file.mime, file.data);
 			ddoc.close();
 			d->writeBase64Element(d->DENC, "CipherValue", Crypto::encrypt(d->method, d->transportKey, ddoc.data()));
@@ -193,7 +193,7 @@ void CDOCWriter::encryptData(const std::vector<File> &files)
 		d->writeTextElement(d->DENC, "EncryptionProperty", {{"Name", "LibraryVersion"}}, "cdoc|0.0.1");
 		d->writeTextElement(d->DENC, "EncryptionProperty", {{"Name", "DocumentFormat"}}, d->documentFormat);
 		d->writeTextElement(d->DENC, "EncryptionProperty", {{"Name", "Filename"}}, "tmp.ddoc");
-		for(const File &file: files)
+		for(const CDOCWriterPrivate::File &file: d->files)
 		{
 			d->writeTextElement(d->DENC, "EncryptionProperty", {{"Name", "orig_file"}},
 				file.filename + "|" + std::to_string(file.data.size()) + "|" + file.mime + "|D0");
