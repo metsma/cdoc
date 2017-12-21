@@ -24,12 +24,12 @@ if(DOXYGEN_FOUND)
 		WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 		COMMENT "Generating API documentation with Doxygen" VERBATIM
 	)
-	file(GLOB RESOURCE_FILES ${CMAKE_BINARY_DIR}/doc/*)
 endif()
 
 add_executable(cdoc-tool main.cpp)
 target_link_libraries(cdoc-tool cdoc)
 if(APPLE)
+	file(GLOB RESOURCE_FILES ${CMAKE_BINARY_DIR}/doc/*)
 	list(APPEND RESOURCE_FILES ${CMAKE_BINARY_DIR}/cdoc-tool)
 	set_target_properties(cdoc-tool PROPERTIES
 		BUILD_WITH_INSTALL_RPATH YES
@@ -37,6 +37,7 @@ if(APPLE)
 	)
 else()
 	install(TARGETS cdoc-tool RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+	install(DIRECTORY ${CMAKE_BINARY_DIR}/doc/ DESTINATION ${CMAKE_INSTALL_DOCDIR})
 endif()
 
 
@@ -61,21 +62,22 @@ install(TARGETS cdoc
 	LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
 	ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
 	RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-    RESOURCE DESTINATION ${CMAKE_INSTALL_DOCDIR}
+	RESOURCE DESTINATION ${CMAKE_INSTALL_DOCDIR}
 	PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/cdoc
 	FRAMEWORK DESTINATION /Library/Frameworks
 )
 
 if(SWIG_FOUND AND WIN32)
-    include(${SWIG_USE_FILE})
-    set(CMAKE_SWIG_FLAGS -dllimport cdoc_csharp -namespace cdoc)
-    set(CMAKE_SWIG_OUTDIR ${CMAKE_CURRENT_BINARY_DIR}/csharp)
-    set_property(SOURCE cdoc.i PROPERTY CPLUSPLUS ON)
-    swig_add_library(cdoc_csharp TYPE SHARED LANGUAGE csharp SOURCES cdoc.i)
-    swig_link_libraries(cdoc_csharp cdoc)
-    set_target_properties(cdoc_csharp PROPERTIES DEBUG_OUTPUT_NAME "cdoc_csharpd")
-    install(TARGETS cdoc_csharp DESTINATION ${CMAKE_INSTALL_BINDIR})
-    install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/csharp/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/cdoc_csharp FILES_MATCHING PATTERN "*.cs")
+	include(${SWIG_USE_FILE})
+	set(CMAKE_SWIG_FLAGS -dllimport cdoc_csharp -namespace cdoc)
+	set(CMAKE_SWIG_OUTDIR ${CMAKE_CURRENT_BINARY_DIR}/csharp)
+	set_property(SOURCE cdoc.i PROPERTY CPLUSPLUS ON)
+	swig_add_library(cdoc_csharp TYPE SHARED LANGUAGE csharp SOURCES cdoc.i)
+	swig_link_libraries(cdoc_csharp cdoc)
+	set_target_properties(cdoc_csharp PROPERTIES DEBUG_OUTPUT_NAME "cdoc_csharpd")
+	install(TARGETS cdoc_csharp DESTINATION ${CMAKE_INSTALL_BINDIR})
+	install(FILES $<TARGET_PDB_FILE:cdoc_csharp> DESTINATION ${CMAKE_INSTALL_BINDIR} OPTIONAL)
+	install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/csharp/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/cdoc_csharp FILES_MATCHING PATTERN "*.cs")
 endif()
 
 if(APPLE)
@@ -98,4 +100,7 @@ if(APPLE)
 		COMMAND dsymutil -o cdoc.dSYM $<TARGET_FILE:cdoc-tool>
 		COMMAND zip -r ${CMAKE_BINARY_DIR}/cdoc-dbg_${PROJECT_VERSION}$ENV{VER_SUFFIX}.zip cdoc.dSYM
 	)
+elseif(WIN32)
+	set_target_properties(cdoc PROPERTIES DEBUG_OUTPUT_NAME "cdocd")
+	install(FILES $<TARGET_PDB_FILE:cdoc> $<TARGET_PDB_FILE:cdoc-tool> DESTINATION ${CMAKE_INSTALL_BINDIR} OPTIONAL)
 endif()

@@ -1,15 +1,22 @@
 #powershell -ExecutionPolicy ByPass -File build.ps1 [-openssl] [-libxml] [-cdoc]
 param(
+    [string]$msiversion = "0.0.1.0",
+    [string]$msi_name = "cdoc-$msiversion$env:VER_SUFFIX.msi",
 	[string]$target = "C:\build",
 	[string]$7zip = "C:\Program Files\7-Zip\7z.exe",
 	[string]$cmake = "C:\Program Files (x86)\CMake\bin\cmake.exe",
 	[string]$vstarget = "12",
-	[string]$vsver = "$($vstarget).0",
+	[string]$VisualStudioVersion = "$($vstarget).0",
 	[string]$msbuild = "C:\Program Files (x86)\MSBuild\$vsver\Bin\MSBuild.exe",
-	[string]$VSINSTALLDIR = "C:\Program Files (x86)\Microsoft Visual Studio $vsver",
+	[string]$VSINSTALLDIR = "C:\Program Files (x86)\Microsoft Visual Studio $VisualStudioVersion",
 	[string]$vcvars = "$VSINSTALLDIR\VC\vcvarsall.bat",
+    [string]$heat = "$env:WIX\bin\heat.exe",
+    [string]$candle = "$env:WIX\bin\candle.exe",
+    [string]$light = "$env:WIX\bin\light.exe",
 	[string]$opensslver = "openssl-1.0.2n",
 	[string]$libxml2ver = "libxml2-2.9.7",
+    [string]$swig = $null,
+    [string]$doxygen = $null,
 	[switch]$openssl = $false,
 	[switch]$libxml2 = $false,
 	[switch]$cdoc = $false
@@ -20,7 +27,6 @@ if(!(Test-Path -Path $target)){
 	New-Item -ItemType directory -Path $target > $null
 }
 
-[Net.ServicePointManager]::SecurityProtocol = 'Tls12'
 $client = new-object System.Net.WebClient
 
 function openssl() {
@@ -64,24 +70,46 @@ function libxml2() {
 }
 
 function cdoc() {
+    $cmakeext = @()
+    $candleext = @()
+    $lightext = @()
+    if($swig) {
+        $cmakeext += "-DSWIG_EXECUTABLE=$swig"
+        $candleext += "-dswig=$swig"
+    }
+    if($doxygen) {
+        $cmakeext += "-DDOXYGEN_EXECUTABLE=$doxygen"
+        $candleext += "-ddocLocation=x86/share/doc/cdoc", "DocFilesFragment.wxs"
+        $lightext += "DocFilesFragment.wixobj"
+    }
 	foreach($platform in @("x86", "x64")) {
-		$buildpath = $platform + "build"
-		switch ($platform)
-		{ 'x86' {
-			$openssl = '/OpenSSL-Win32'
-		} 'x64' {
-			$openssl = '/OpenSSL-Win64'
-		}}
-		Remove-Item $buildpath -Force -Recurse > $null
-		New-Item -ItemType directory -Path $buildpath > $null
-		Push-Location -Path $buildpath
-		& $vcvars $platform "&&" $cmake "-GNMake Makefiles" "-DCMAKE_BUILD_TYPE=RelWithDebInfo" "-DCMAKE_INSTALL_PREFIX=../$platform" "-DCMAKE_INSTALL_LIBDIR=bin" `
-			"-DOPENSSL_ROOT_DIR=$openssl" `
-			"-DLIBXML2_LIBRARIES=$target/libxml2/$platform/lib/libxml2.lib" `
-			"-DLIBXML2_INCLUDE_DIR=$target/libxml2/$platform/include/libxml2" `
-			$source "&&" nmake /nologo install
-		Pop-Location
+        foreach($type in @("Debug", "RelWithDebInfo")) {
+    		$buildpath = $platform + $type
+    		switch ($platform)
+    		{ 'x86' {
+    			$openssl = '/OpenSSL-Win32'
+    		} 'x64' {
+    			$openssl = '/OpenSSL-Win64'
+    		}}
+    		Remove-Item $buildpath -Force -Recurse > $null
+    		New-Item -ItemType directory -Path $buildpath > $null
+    		Push-Location -Path $buildpath
+    		& $vcvars $platform "&&" $cmake "-GNMake Makefiles" "-DCMAKE_BUILD_TYPE=$type" "-DCMAKE_INSTALL_PREFIX=$target\cdoc\$platform" "-DCMAKE_INSTALL_LIBDIR=bin" $cmakeext `
+    			"-DOPENSSL_ROOT_DIR=$openssl" `
+    			"-DLIBXML2_LIBRARIES=$target/libxml2/$platform/lib/libxml2.lib" `
+    			"-DLIBXML2_INCLUDE_DIR=$target/libxml2/$platform/include/libxml2" `
+    			$source "&&" nmake /nologo install
+    		Pop-Location
+        }
 	}
+
+    if($doxygen) {
+        & $heat dir x86/share/doc/cdoc -nologo -cg Documentation -gg -scom -sreg -sfrag -srd -dr DocumentationFolder -var var.docLocation -out DocFilesFragment.wxs
+    }
+    & $heat dir $target/cdoc/x86/include -nologo -cg Headers -gg -scom -sreg -sfrag -srd -dr HeadersFolder -var var.headersLocation -out HeadersFragment.wxs
+    & $candle -nologo "-dICON=ID.ico" "-dMSI_VERSION=$msiversion" "-dcdoc=$target\cdoc" "-dVisualStudioVersion=$VisualStudioVersion" $candleext `
+        "-dVCINSTALLDIR=$VSINSTALLDIR\VC" "-dheadersLocation=$target\cdoc\x86\include" "-dlibxml2=$target\libxml2" cdoc.wxs HeadersFragment.wxs
+    & $light -nologo -out $msi_name -ext WixUIExtension cdoc.wixobj HeadersFragment.wixobj $lightext
 }
 
 if($openssl) {

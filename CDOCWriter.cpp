@@ -53,9 +53,9 @@ CDOCWriter::~CDOCWriter()
 }
 
 /**
- * @var filename Filename of encrypted file
- * @var mime Mime type of encrypted file
- * @var data Content of encrypted file
+ * @param filename Filename of encrypted file
+ * @param mime Mime type of encrypted file
+ * @param data Content of encrypted file
  */
 void CDOCWriter::addFile(const std::string &filename,
 	const std::string &mime, const std::vector<unsigned char> &data)
@@ -172,7 +172,6 @@ void CDOCWriter::addRecipient(const std::vector<uchar> &recipient)
 
 /**
  * Encrypt data
- * @param files List of files to encrypt
  */
 void CDOCWriter::encrypt()
 {

@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<?if $(var.VisualStudioVersion) = "14.0" ?>
+<?define VCVER = "140" ?>
+<?define VCRT = "vcruntime" ?>
+<?else?>
+<?define VCVER = "120" ?>
+<?define VCRT = "msvcr" ?>
+<?endif?>
+
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+  <Product Name="cdoc" UpgradeCode="{2504db5c-eda6-4786-bafb-4a9f2b381eba}"
+      Id="*" Language="1033" Version="$(var.MSI_VERSION)" Codepage="1251" Manufacturer="RIA">
+    <Package Keywords="Installer" InstallerVersion="405" Compressed="yes"/>
+    <MediaTemplate EmbedCab="yes" CompressionLevel="high"/>
+    <Icon Id="ID.ico" SourceFile="$(var.ICON)"/>
+    <Property Id="ARPPRODUCTICON" Value="ID.ico"/>
+    <MajorUpgrade AllowSameVersionUpgrades="yes" DowngradeErrorMessage=
+      "A newer version of [ProductName] is already installed. If you are trying to downgrade, please uninstall the newer version first."/>
+    <UI>
+       <UIRef Id="WixUI_Mondo" />
+       <Publish Dialog="WelcomeDlg" Control="Next" Event="NewDialog" Value="SetupTypeDlg" Order="3">1</Publish>
+       <Publish Dialog="SetupTypeDlg" Control="Back" Event="NewDialog" Value="WelcomeDlg" Order="3">1</Publish>
+    </UI>
+
+    <Directory Id="TARGETDIR" Name="SourceDir">
+      <Directory Id='ProgramFilesFolder'>
+          <Directory Id="APPLICATIONFOLDER" Name="cdoc">
+            <Directory Id="X86FOLDER" Name="x86">
+              <Component Id="LibrariesX86" Guid="{5858d654-c7a4-4fde-982f-5e1c9a36017e}">
+                <File Source="$(var.VCINSTALLDIR)\redist\x86\Microsoft.VC$(var.VCVER).CRT\msvcp$(var.VCVER).dll"/>
+                <File Source="$(var.VCINSTALLDIR)\redist\x86\Microsoft.VC$(var.VCVER).CRT\$(var.VCRT)$(var.VCVER).dll"/>
+                <File Source="C:\OpenSSL-Win32\bin\libeay32.dll"/>
+                <File Source="C:\OpenSSL-Win32\bin\ssleay32.dll"/>
+                <File Source="$(var.libxml2)\x86\bin\libxml2.dll"/>
+                <File Source="$(var.cdoc)\x86\bin\cdoc.dll"/>
+                <File Source="$(var.cdoc)\x86\bin\cdoc-tool.exe"/>
+<?ifdef var.swig ?>
+                <File Source="$(var.cdoc)\x86\bin\cdoc_csharp.dll"/>
+<?endif?>
+              </Component>
+              <Component Id="LibrariesDevX86" Guid="{a1fa0365-be9b-475f-86fc-6900e2a42544}">
+                <File Source="$(var.VCINSTALLDIR)\redist\Debug_NonRedist\x86\Microsoft.VC$(var.VCVER).DebugCRT\msvcp$(var.VCVER)d.dll"/>
+                <File Source="$(var.VCINSTALLDIR)\redist\Debug_NonRedist\x86\Microsoft.VC$(var.VCVER).DebugCRT\$(var.VCRT)$(var.VCVER)d.dll"/>
+                <File Source="$(var.cdoc)\x86\bin\cdoc-tool.pdb"/>
+                <File Source="$(var.cdoc)\x86\bin\cdoc.lib"/>
+                <File Source="$(var.cdoc)\x86\bin\cdoc.pdb"/>
+                <File Source="$(var.cdoc)\x86\bin\cdocd.dll"/>
+                <File Source="$(var.cdoc)\x86\bin\cdocd.lib"/>
+                <File Source="$(var.cdoc)\x86\bin\cdocd.pdb"/>
+<?ifdef var.swig ?>
+                <File Source="$(var.cdoc)\x86\bin\cdoc_csharp.pdb"/>
+                <File Source="$(var.cdoc)\x86\bin\cdoc_csharpd.dll"/>
+                <File Source="$(var.cdoc)\x86\bin\cdoc_csharpd.pdb"/>
+<?endif?>
+              </Component>
+            </Directory>
+            <Directory Id="X64FOLDER" Name="x64">
+              <Component Id="LibrariesX64" Guid="{edfe715b-f607-40f5-907a-c833c6eda91f}">
+                <File Source="$(var.VCINSTALLDIR)\redist\x64\Microsoft.VC$(var.VCVER).CRT\msvcp$(var.VCVER).dll" Id="msvcp$(var.VCVER)_64.dll"/>
+                <File Source="$(var.VCINSTALLDIR)\redist\x64\Microsoft.VC$(var.VCVER).CRT\$(var.VCRT)$(var.VCVER).dll" Id="$(var.VCRT)$(var.VCVER)_64.dll"/>
+                <File Source="C:\OpenSSL-Win64\bin\libeay32.dll" Id="libeay32_64.dll"/>
+                <File Source="C:\OpenSSL-Win64\bin\ssleay32.dll" Id="ssleay32_64.dll"/>
+                <File Source="$(var.libxml2)\x64\bin\libxml2.dll" Id="libxml2_64.dll"/>
+                <File Source="$(var.cdoc)\x64\bin\cdoc.dll" Id="cdoc.dll_64"/>
+                <File Source="$(var.cdoc)\x64\bin\cdoc-tool.exe" Id="cdoc_tool.exe_64"/>
+<?ifdef var.swig ?>
+                <File Source="$(var.cdoc)\x64\bin\cdoc_csharp.dll" Id="cdoc_csharp.dll_64"/>
+<?endif?>
+              </Component>
+              <Component Id="LibrariesDevX64" Guid="{D992688C-0D4A-4C22-BEF4-582D7FA91731}">
+                <File Source="$(var.VCINSTALLDIR)\redist\Debug_NonRedist\x86\Microsoft.VC$(var.VCVER).DebugCRT\msvcp$(var.VCVER)d.dll" Id="msvcp$(var.VCVER)d_64.dll"/>
+                <File Source="$(var.VCINSTALLDIR)\redist\Debug_NonRedist\x86\Microsoft.VC$(var.VCVER).DebugCRT\$(var.VCRT)$(var.VCVER)d.dll" Id="$(var.VCRT)$(var.VCVER)d_64.dll"/>
+                <File Source="$(var.cdoc)\x64\bin\cdoc-tool.pdb" Id="cdoc_tool.pdb_64"/>
+                <File Source="$(var.cdoc)\x64\bin\cdoc.lib" Id="cdoc.lib_64"/>
+                <File Source="$(var.cdoc)\x64\bin\cdoc.pdb" Id="cdoc.pdb_64"/>
+                <File Source="$(var.cdoc)\x64\bin\cdocd.dll" Id="cdocd.dll_64"/>
+                <File Source="$(var.cdoc)\x64\bin\cdocd.lib" Id="cdocd.lib_64"/>
+                <File Source="$(var.cdoc)\x64\bin\cdocd.pdb" Id="cdocd.pdb_64"/>
+<?ifdef var.swig ?>
+                <File Source="$(var.cdoc)\x64\bin\cdoc_csharp.pdb" Id="cdoc_csharp.pdb_64"/>
+                <File Source="$(var.cdoc)\x64\bin\cdoc_csharpd.dll" Id="cdoc_csharpd.dll_64"/>
+                <File Source="$(var.cdoc)\x64\bin\cdoc_csharpd.pdb" Id="cdoc_csharpd.pdb_64"/>
+<?endif?>
+              </Component>
+            </Directory>
+<?ifdef var.docLocation ?>
+            <Directory Id="DocumentationFolder" Name="documentation"/>
+<?endif?>
+<?ifdef var.sourceLocation ?>
+            <Directory Id="SourceFolder" Name="source"/>
+<?endif?>
+            <Directory Id="HeadersFolder" Name="include"/>
+          </Directory>
+      </Directory>
+    </Directory>
+
+    <Feature Id="Installcdoc" Level="1" Title="cdoc" Display="expand" ConfigurableDirectory="APPLICATIONFOLDER">
+<?ifdef var.sourceLocation ?>
+      <Feature Id="InstallSource" Level="1" Title="Source">
+        <ComponentGroupRef Id="Source"/>
+      </Feature>
+<?endif?>
+      <Feature Id="InstallDevel" Level="1" Title="Development">
+        <ComponentGroupRef Id="Headers"/>
+        <Feature Id="InstallcdocDevX86" Level="1" Title="X86">
+          <ComponentRef Id="LibrariesX86"/>
+          <ComponentRef Id="LibrariesDevX86"/>
+        </Feature>
+        <Feature Id="InstallcdocDevX64" Level="1" Title="X64">
+          <ComponentRef Id="LibrariesX64"/>
+          <ComponentRef Id="LibrariesDevX64"/>
+        </Feature>
+      </Feature>
+<?ifdef var.docLocation ?>
+      <Feature Id="InstallDocumentation" Level="1" Title="Documentation">
+        <ComponentGroupRef Id="Documentation"/>
+      </Feature>
+<?endif?>
+      <Feature Id="InstallcdocX86" Level="1" Title="X86">
+        <ComponentRef Id="LibrariesX86"/>
+      </Feature>
+      <Feature Id="InstallcdocX64" Level="1" Title="X64">
+        <ComponentRef Id="LibrariesX64"/>
+      </Feature>
+    </Feature>
+  </Product>
+</Wix>
