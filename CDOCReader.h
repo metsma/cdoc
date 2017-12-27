@@ -18,6 +18,6 @@ public:
 private:
 	CDOCReader(const CDOCReader &) = delete;
 	CDOCReader &operator=(const CDOCReader &) = delete;
-	class CDOCReaderPrivate;
-	CDOCReaderPrivate *d;
+	class Private;
+	Private *d;
 };

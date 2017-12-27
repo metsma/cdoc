@@ -71,7 +71,7 @@ std::vector<uchar> Token::deriveConcatKDF(const std::vector<uchar> &publicKey, c
  * @brief Implements <code>Token</code> interface for ID-Cards, which support PKCS#11 protocol.
  */
 
-class PKCS11Token::PKCS11TokenPrivate
+class PKCS11Token::Private
 {
 public:
 	std::vector<CK_OBJECT_HANDLE> findObject(CK_OBJECT_CLASS cls, const std::vector<uchar> &id = std::vector<uchar>())
@@ -126,7 +126,7 @@ public:
  * @param password token password
  */
 PKCS11Token::PKCS11Token(const std::string &path, const std::string &password)
-	: d(new PKCS11TokenPrivate)
+	: d(new Private)
 {
 	CK_C_GetFunctionList l = nullptr;
 #ifdef _WIN32
@@ -265,7 +265,7 @@ std::vector<uchar> PKCS11Token::derive(const std::vector<uchar> &publicKey) cons
  * @brief Implements <code>Token</code> interface for PKCS#12 files.
  */
 
-class PKCS12Token::PKCS12TokenPrivate
+class PKCS12Token::Private
 {
 public:
 	std::unique_ptr<EVP_PKEY, decltype(&EVP_PKEY_free)> pkey { nullptr, EVP_PKEY_free };
@@ -280,7 +280,7 @@ public:
  * @param password PKCS#12 file password
  */
 PKCS12Token::PKCS12Token(const std::string &path, const std::string &password)
-	: d(new PKCS12TokenPrivate)
+	: d(new Private)
 {
 	SSL_load_error_strings();
 	SSL_library_init();
@@ -389,7 +389,7 @@ PCCERT_CONTEXT WINAPI CryptUIDlgSelectCertificateW(
 
 }  // extern "C"
 
-class WinToken::WinTokenPrivate
+class WinToken::Private
 {
 public:
 	static BOOL WINAPI CertFilter(PCCERT_CONTEXT cert,
@@ -430,7 +430,7 @@ public:
 };
 
 WinToken::WinToken(bool ui, const std::string &pass)
-	: d(new WinTokenPrivate)
+	: d(new Private)
 {
 	HCERTSTORE store = CertOpenSystemStore(0, L"MY");
 	if(!store)

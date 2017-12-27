@@ -7,7 +7,7 @@
 typedef xmlChar *pxmlChar;
 typedef const xmlChar *pcxmlChar;
 
-struct Writer::WriterPrivate
+struct Writer::Private
 {
 	xmlBufferPtr buf = nullptr;
 	xmlTextWriterPtr w = nullptr;
@@ -15,7 +15,7 @@ struct Writer::WriterPrivate
 };
 
 Writer::Writer(const std::string &path)
-	: d(new WriterPrivate)
+	: d(new Private)
 {
 	if(path.empty())
 	{

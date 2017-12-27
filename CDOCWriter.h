@@ -19,6 +19,6 @@ public:
 private:
 	CDOCWriter(const CDOCWriter &) = delete;
 	CDOCWriter &operator=(const CDOCWriter &) = delete;
-	struct CDOCWriterPrivate;
-	CDOCWriterPrivate *d;
+	struct Private;
+	Private *d;
 };

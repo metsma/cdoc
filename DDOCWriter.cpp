@@ -7,13 +7,13 @@
  * @brief DDOCWriter is used for storing multiple files.
  */
 
-struct DDOCWriter::DDOCWriterPrivate
+struct DDOCWriter::Private
 {
 	static const NS DDOC;
 	int fileCount = 0;
 };
 
-const Writer::NS DDOCWriter::DDOCWriterPrivate::DDOC{ "", "http://www.sk.ee/DigiDoc/v1.3.0#" };
+const Writer::NS DDOCWriter::Private::DDOC{ "", "http://www.sk.ee/DigiDoc/v1.3.0#" };
 
 /**
  * DDOCWriter constructor.
@@ -21,9 +21,9 @@ const Writer::NS DDOCWriter::DDOCWriterPrivate::DDOC{ "", "http://www.sk.ee/Digi
  */
 DDOCWriter::DDOCWriter(const std::string &file)
 	: Writer(file)
-	, d(new DDOCWriterPrivate)
+	, d(new Private)
 {
-	writeStartElement(d->DDOC, "SignedDoc", {{"format", "DIGIDOC-XML"}, {"version", "1.3"}});
+	writeStartElement(Private::DDOC, "SignedDoc", {{"format", "DIGIDOC-XML"}, {"version", "1.3"}});
 }
 
 DDOCWriter::~DDOCWriter()
@@ -33,7 +33,7 @@ DDOCWriter::~DDOCWriter()
 
 void DDOCWriter::close()
 {
-	writeEndElement(d->DDOC); // SignedDoc
+	writeEndElement(Private::DDOC); // SignedDoc
 	Writer::close();
 }
 
@@ -45,7 +45,7 @@ void DDOCWriter::close()
  */
 void DDOCWriter::addFile(const std::string &file, const std::string &mime, const std::vector<unsigned char> &data)
 {
-	writeBase64Element(d->DDOC, "DataFile", data, {
+	writeBase64Element(Private::DDOC, "DataFile", data, {
 		{"ContentType", "EMBEDDED_BASE64"},
 		{"Filename", file},
 		{"Id", "D" + std::to_string(d->fileCount++)},

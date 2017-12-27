@@ -35,8 +35,8 @@ public:
 	std::vector<uchar> derive(const std::vector<uchar> &publicKey) const override;
 private:
 	DISABLE_COPY(PKCS11Token);
-	class PKCS11TokenPrivate;
-	PKCS11TokenPrivate *d;
+	class Private;
+	Private *d;
 };
 
 class CDOC_EXPORT PKCS12Token: public Token
@@ -49,8 +49,8 @@ public:
 	std::vector<uchar> derive(const std::vector<uchar> &publicKey) const override;
 private:
 	DISABLE_COPY(PKCS12Token);
-	class PKCS12TokenPrivate;
-	PKCS12TokenPrivate *d;
+	class Private;
+	Private *d;
 };
 
 #ifdef _WIN32
@@ -65,7 +65,7 @@ public:
 		const std::vector<uchar> &algorithmID, const std::vector<uchar> &partyUInfo, const std::vector<uchar> &partyVInfo) const override;
 private:
 	DISABLE_COPY(WinToken);
-	class WinTokenPrivate;
-	WinTokenPrivate *d;
+	class Private;
+	Private *d;
 };
 #endif

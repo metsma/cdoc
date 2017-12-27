@@ -16,6 +16,6 @@ public:
 private:
 	DDOCWriter(const DDOCWriter &) = delete;
 	DDOCWriter &operator=(const DDOCWriter &) = delete;
-	struct DDOCWriterPrivate;
-	DDOCWriterPrivate *d;
+	struct Private;
+	Private *d;
 };

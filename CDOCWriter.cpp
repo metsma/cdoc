@@ -11,24 +11,24 @@
  * @brief CDOCWriter is used for encrypt data.
  */
 
-struct CDOCWriter::CDOCWriterPrivate: public Writer
+struct CDOCWriter::Private: public Writer
 {
-	CDOCWriterPrivate(const std::string &file): Writer(file) {}
+	Private(const std::string &file): Writer(file) {}
 	static const NS DENC, DS, XENC11, DSIG11;
 	std::string method, documentFormat = "ENCDOC-XML|1.1";
 	Crypto::Key transportKey;
 	struct File
 	{
 		std::string filename, mime;
-		std::vector<unsigned char> data;
+		std::vector<uchar> data;
 	};
 	std::vector<File> files;
 };
 
-const Writer::NS CDOCWriter::CDOCWriterPrivate::DENC{ "denc", "http://www.w3.org/2001/04/xmlenc#" };
-const Writer::NS CDOCWriter::CDOCWriterPrivate::DS{ "ds", "http://www.w3.org/2000/09/xmldsig#" };
-const Writer::NS CDOCWriter::CDOCWriterPrivate::XENC11{ "xenc11", "http://www.w3.org/2009/xmlenc11#" };
-const Writer::NS CDOCWriter::CDOCWriterPrivate::DSIG11{ "dsig11", "http://www.w3.org/2009/xmldsig11#" };
+const Writer::NS CDOCWriter::Private::DENC{ "denc", "http://www.w3.org/2001/04/xmlenc#" };
+const Writer::NS CDOCWriter::Private::DS{ "ds", "http://www.w3.org/2000/09/xmldsig#" };
+const Writer::NS CDOCWriter::Private::XENC11{ "xenc11", "http://www.w3.org/2009/xmlenc11#" };
+const Writer::NS CDOCWriter::Private::DSIG11{ "dsig11", "http://www.w3.org/2009/xmldsig11#" };
 
 
 
@@ -39,12 +39,12 @@ const Writer::NS CDOCWriter::CDOCWriterPrivate::DSIG11{ "dsig11", "http://www.w3
  * @param mime Content type of encrypted data
  */
 CDOCWriter::CDOCWriter(const std::string &file, const std::string &method, const std::string &mime)
-	: d(new CDOCWriterPrivate(file))
+	: d(new Private(file))
 {
 	d->transportKey = Crypto::generateKey(d->method = method);
-	d->writeStartElement(d->DENC, "EncryptedData", {{"MimeType", mime}});
-	d->writeElement(d->DENC, "EncryptionMethod", {{"Algorithm", method}});
-	d->writeStartElement(d->DS, "KeyInfo", {});
+	d->writeStartElement(Private::DENC, "EncryptedData", {{"MimeType", mime}});
+	d->writeElement(Private::DENC, "EncryptionMethod", {{"Algorithm", method}});
+	d->writeStartElement(Private::DS, "KeyInfo", {});
 }
 
 CDOCWriter::~CDOCWriter()
@@ -58,7 +58,7 @@ CDOCWriter::~CDOCWriter()
  * @param data Content of encrypted file
  */
 void CDOCWriter::addFile(const std::string &filename,
-	const std::string &mime, const std::vector<unsigned char> &data)
+	const std::string &mime, const std::vector<uchar> &data)
 {
 	d->files.push_back({filename, mime, data});
 }
@@ -78,7 +78,7 @@ void CDOCWriter::addRecipient(const std::vector<uchar> &recipient)
 	std::string cn(data, size_t(size));
 	OPENSSL_free(data);
 
-	d->writeElement(d->DENC, "EncryptedKey", {{"Recipient", cn}}, [&]{
+	d->writeElement(Private::DENC, "EncryptedKey", {{"Recipient", cn}}, [&]{
 		std::vector<uchar> encryptedData;
 		SCOPE(EVP_PKEY, peerPKey, X509_get_pubkey(peerCert.get()));
 		switch(EVP_PKEY_base_id(peerPKey.get()))
@@ -89,10 +89,10 @@ void CDOCWriter::addRecipient(const std::vector<uchar> &recipient)
 			encryptedData.resize(size_t(RSA_size(rsa.get())));
 			RSA_public_encrypt(int(d->transportKey.key.size()), d->transportKey.key.data(),
 				encryptedData.data(), rsa.get(), RSA_PKCS1_PADDING);
-			d->writeElement(d->DENC, "EncryptionMethod", {{"Algorithm", Crypto::RSA_MTH}});
-			d->writeElement(d->DS, "KeyInfo", [&]{
-				d->writeElement(d->DS, "X509Data", [&]{
-					d->writeBase64Element(d->DS, "X509Certificate", recipient);
+			d->writeElement(Private::DENC, "EncryptionMethod", {{"Algorithm", Crypto::RSA_MTH}});
+			d->writeElement(Private::DS, "KeyInfo", [&]{
+				d->writeElement(Private::DS, "X509Data", [&]{
+					d->writeBase64Element(Private::DS, "X509Certificate", recipient);
 				});
 			});
 			break;
@@ -134,39 +134,39 @@ void CDOCWriter::addRecipient(const std::vector<uchar> &recipient)
 			printf("transport %s\n", Crypto::toHex(d->transportKey.key).c_str());
 #endif
 
-			d->writeElement(d->DENC, "EncryptionMethod", {{"Algorithm", encryptionMethod}});
-			d->writeElement(d->DS, "KeyInfo", [&]{
-				d->writeElement(d->DENC, "AgreementMethod", {{"Algorithm", Crypto::AGREEMENT_MTH}}, [&]{
-					d->writeElement(d->XENC11, "KeyDerivationMethod", {{"Algorithm", Crypto::CONCATKDF_MTH}}, [&]{
-						d->writeElement(d->XENC11, "ConcatKDFParams", {
+			d->writeElement(Private::DENC, "EncryptionMethod", {{"Algorithm", encryptionMethod}});
+			d->writeElement(Private::DS, "KeyInfo", [&]{
+				d->writeElement(Private::DENC, "AgreementMethod", {{"Algorithm", Crypto::AGREEMENT_MTH}}, [&]{
+					d->writeElement(Private::XENC11, "KeyDerivationMethod", {{"Algorithm", Crypto::CONCATKDF_MTH}}, [&]{
+						d->writeElement(Private::XENC11, "ConcatKDFParams", {
 							{"AlgorithmID", "00" + Crypto::toHex(AlgorithmID)},
 							{"PartyUInfo", "00" + Crypto::toHex(SsDer)},
 							{"PartyVInfo", "00" + Crypto::toHex(recipient)}}, [&]{
-							d->writeElement(d->DS, "DigestMethod", {{"Algorithm", concatDigest}});
+							d->writeElement(Private::DS, "DigestMethod", {{"Algorithm", concatDigest}});
 						});
 					});
-					d->writeElement(d->DENC, "OriginatorKeyInfo", [&]{
-						d->writeElement(d->DS, "KeyValue", [&]{
-							d->writeElement(d->DSIG11, "ECKeyValue", [&]{
-								d->writeElement(d->DSIG11, "NamedCurve", {{"URI", "urn:oid:" + oid}});
-								d->writeBase64Element(d->DSIG11, "PublicKey", SsDer);
+					d->writeElement(Private::DENC, "OriginatorKeyInfo", [&]{
+						d->writeElement(Private::DS, "KeyValue", [&]{
+							d->writeElement(Private::DSIG11, "ECKeyValue", [&]{
+								d->writeElement(Private::DSIG11, "NamedCurve", {{"URI", "urn:oid:" + oid}});
+								d->writeBase64Element(Private::DSIG11, "PublicKey", SsDer);
 							});
 						});
 					});
-					d->writeElement(d->DENC, "RecipientKeyInfo", [&]{
-						d->writeElement(d->DS, "X509Data", [&]{
-							d->writeBase64Element(d->DS, "X509Certificate", recipient);
+					d->writeElement(Private::DENC, "RecipientKeyInfo", [&]{
+						d->writeElement(Private::DS, "X509Data", [&]{
+							d->writeBase64Element(Private::DS, "X509Certificate", recipient);
 						});
 					});
 				});
 			 });
-			d->writeElement(d->DENC, "CipherData", [&]{
-				d->writeBase64Element(d->DENC, "CipherValue", encryptedData);
-			});
 			break;
 		}
 		default: break;
 		}
+		d->writeElement(Private::DENC, "CipherData", [&]{
+			d->writeBase64Element(Private::DENC, "CipherValue", encryptedData);
+		});
 	});
 }
 
@@ -175,28 +175,28 @@ void CDOCWriter::addRecipient(const std::vector<uchar> &recipient)
  */
 void CDOCWriter::encrypt()
 {
-	d->writeEndElement(d->DS); // KeyInfo
+	d->writeEndElement(Private::DS); // KeyInfo
 
 	std::vector<uchar> data;
-	d->writeElement(d->DENC, "CipherData", [&]{
+	d->writeElement(Private::DENC, "CipherData", [&]{
 		if(d->files.size() > 1)
 		{
 			DDOCWriter ddoc("");
-			for(const CDOCWriterPrivate::File &file: d->files)
+			for(const Private::File &file: d->files)
 				ddoc.addFile(file.filename, file.mime, file.data);
 			ddoc.close();
-			d->writeBase64Element(d->DENC, "CipherValue", Crypto::encrypt(d->method, d->transportKey, ddoc.data()));
+			d->writeBase64Element(Private::DENC, "CipherValue", Crypto::encrypt(d->method, d->transportKey, ddoc.data()));
 		}
 	});
-	d->writeElement(d->DENC, "EncryptionProperties", [&]{
-		d->writeTextElement(d->DENC, "EncryptionProperty", {{"Name", "LibraryVersion"}}, "cdoc|0.0.1");
-		d->writeTextElement(d->DENC, "EncryptionProperty", {{"Name", "DocumentFormat"}}, d->documentFormat);
-		d->writeTextElement(d->DENC, "EncryptionProperty", {{"Name", "Filename"}}, "tmp.ddoc");
-		for(const CDOCWriterPrivate::File &file: d->files)
+	d->writeElement(Private::DENC, "EncryptionProperties", [&]{
+		d->writeTextElement(Private::DENC, "EncryptionProperty", {{"Name", "LibraryVersion"}}, "cdoc|0.0.1");
+		d->writeTextElement(Private::DENC, "EncryptionProperty", {{"Name", "DocumentFormat"}}, d->documentFormat);
+		d->writeTextElement(Private::DENC, "EncryptionProperty", {{"Name", "Filename"}}, "tmp.ddoc");
+		for(const Private::File &file: d->files)
 		{
-			d->writeTextElement(d->DENC, "EncryptionProperty", {{"Name", "orig_file"}},
+			d->writeTextElement(Private::DENC, "EncryptionProperty", {{"Name", "orig_file"}},
 				file.filename + "|" + std::to_string(file.data.size()) + "|" + file.mime + "|D0");
 		}
 	});
-	d->writeEndElement(d->DENC); // EncryptedData
+	d->writeEndElement(Private::DENC); // EncryptedData
 }

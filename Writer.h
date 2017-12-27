@@ -23,6 +23,6 @@ public:
 	void writeTextElement(const NS &ns, const std::string &name, const std::map<std::string, std::string> &attr, const std::string &data);
 
 private:
-	struct WriterPrivate;
-	WriterPrivate *d;
+	struct Private;
+	Private *d;
 };
