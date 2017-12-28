@@ -187,6 +187,8 @@ void CDOCWriter::encrypt()
 			ddoc.close();
 			d->writeBase64Element(Private::DENC, "CipherValue", Crypto::encrypt(d->method, d->transportKey, ddoc.data()));
 		}
+		else
+			d->writeBase64Element(Private::DENC, "CipherValue", Crypto::encrypt(d->method, d->transportKey, d->files.at(0).data));
 	});
 	d->writeElement(Private::DENC, "EncryptionProperties", [&]{
 		d->writeTextElement(Private::DENC, "EncryptionProperty", {{"Name", "LibraryVersion"}}, "cdoc|0.0.1");

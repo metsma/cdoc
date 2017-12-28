@@ -238,6 +238,9 @@ std::vector<uchar> CDOCReader::decryptData(const std::vector<uchar> &key)
 		std::vector<uchar> tag(data.cend() - 16, data.cend());
 		EVP_CIPHER_CTX_ctrl(ctx.get(), EVP_CTRL_GCM_SET_TAG, int(tag.size()), tag.data());
 		data.resize(data.size() - tag.size());
+#ifndef NDEBUG
+		printf("GCM TAG %s\n", Crypto::toHex(tag).c_str());
+#endif
 	}
 
 	int size = 0;

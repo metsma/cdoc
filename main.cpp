@@ -51,12 +51,12 @@ int main(int argc, char *argv[])
 	else
 	{
 		std::cout
-			<< "cdoc encrypt X509DerRecipientCert InFile [InFile [InFile [...]]] OutFile" << std::endl
+			<< "cdoc-tool encrypt X509DerRecipientCert InFile [InFile [InFile [...]]] OutFile" << std::endl
 #ifdef _WIN32
-			<< "cdoc decrypt win [ui|noui] pin InFile OutFile" << std::endl
+			<< "cdoc-tool decrypt win [ui|noui] pin InFile OutFile" << std::endl
 #endif
-			<< "cdoc decrypt pkcs11 path/to/so pin InFile OutFile" << std::endl
-			<< "cdoc decrypt pkcs12 path/to/pkcs12 pin InFile OutFile" << std::endl;
+			<< "cdoc-tool decrypt pkcs11 path/to/so pin InFile OutFile" << std::endl
+			<< "cdoc-tool decrypt pkcs12 path/to/pkcs12 pin InFile OutFile" << std::endl;
 	}
 	return 0;
 }

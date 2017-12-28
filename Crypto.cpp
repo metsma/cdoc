@@ -135,6 +135,9 @@ std::vector<uchar> Crypto::encrypt(const std::string &method, const Key &key, co
 		std::vector<uchar> tag(16, 0);
 		EVP_CIPHER_CTX_ctrl(ctx.get(), EVP_CTRL_GCM_GET_TAG, int(tag.size()), tag.data());
 		result.insert(result.cend(), tag.cbegin(), tag.cend());
+#ifndef NDEBUG
+		printf("GCM TAG %s\n", Crypto::toHex(tag).c_str());
+#endif
 	}
 	return result;
 }

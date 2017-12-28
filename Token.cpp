@@ -5,7 +5,6 @@
 #include "pkcs11.h"
 
 #include <openssl/pkcs12.h>
-#include <openssl/ssl.h>
 
 #ifdef _WIN32
 #include <Windows.h>
@@ -61,7 +60,7 @@ std::vector<uchar> Token::derive(const std::vector<uchar> &) const
 std::vector<uchar> Token::deriveConcatKDF(const std::vector<uchar> &publicKey, const std::string &digest, uint32_t keySize,
 	const std::vector<uchar> &algorithmID, const std::vector<uchar> &partyUInfo, const std::vector<uchar> &partyVInfo) const
 {
-	return Crypto::concatKDF(digest, keySize,  derive(publicKey), algorithmID, partyUInfo, partyVInfo);
+	return Crypto::concatKDF(digest, keySize, derive(publicKey), algorithmID, partyUInfo, partyVInfo);
 }
 
 
@@ -239,18 +238,13 @@ std::vector<uchar> PKCS11Token::derive(const std::vector<uchar> &publicKey) cons
 
 	CK_ECDH1_DERIVE_PARAMS ecdh_parms = { CKD_NULL, 0, nullptr, CK_ULONG(publicKey.size()), CK_BYTE_PTR(publicKey.data()) };
 	CK_MECHANISM mech = { CKM_ECDH1_DERIVE, &ecdh_parms, sizeof(CK_ECDH1_DERIVE_PARAMS) };
-	CK_BBOOL _true = CK_TRUE;
 	CK_BBOOL _false = CK_FALSE;
 	CK_OBJECT_CLASS newkey_class = CKO_SECRET_KEY;
 	CK_KEY_TYPE newkey_type = CKK_GENERIC_SECRET;
-	CK_ULONG key_len = CK_ULONG((publicKey.size() - 1) / 2);
 	std::vector<CK_ATTRIBUTE> newkey_template{
 		{CKA_TOKEN, &_false, sizeof(_false)},
 		{CKA_CLASS, &newkey_class, sizeof(newkey_class)},
-		{CKA_KEY_TYPE, &newkey_type, sizeof(newkey_type)},
-		{CKA_ENCRYPT, &_true, sizeof(_true)},
-		{CKA_DECRYPT, &_true, sizeof(_true)},
-		{CKA_VALUE_LEN, &key_len, sizeof(key_len)}
+		{CKA_KEY_TYPE, &newkey_type, sizeof(newkey_type)}
 	};
 	CK_OBJECT_HANDLE newkey = CK_INVALID_HANDLE;
 	if(d->f->C_DeriveKey(d->session, &mech, key[0], newkey_template.data(), CK_ULONG(newkey_template.size()), &newkey) != CKR_OK)
@@ -282,8 +276,8 @@ public:
 PKCS12Token::PKCS12Token(const std::string &path, const std::string &password)
 	: d(new Private)
 {
-	SSL_load_error_strings();
-	SSL_library_init();
+	OpenSSL_add_all_ciphers();
+	OpenSSL_add_all_digests();
 	SCOPE(BIO, bio, BIO_new_file(path.c_str(), "rb"));
 	SCOPE(PKCS12, p12, d2i_PKCS12_bio(bio.get(), 0));
 	d->pass = password;
@@ -334,8 +328,7 @@ std::vector<uchar> PKCS12Token::derive(const std::vector<uchar> &publicKey) cons
 	if(!d->pkey)
 		return result;
 
-	SCOPE(EVP_PKEY, pkey, d->pkey.get());
-	SCOPE(EC_KEY, pECKey, EVP_PKEY_get1_EC_KEY(pkey.get()));
+	SCOPE(EC_KEY, pECKey, EVP_PKEY_get1_EC_KEY(d->pkey.get()));
 
 	size_t size = (publicKey.size() - 1) / 2;
 	SCOPE(EC_KEY, peerECKey, EC_KEY_new());
@@ -347,7 +340,7 @@ std::vector<uchar> PKCS12Token::derive(const std::vector<uchar> &publicKey) cons
 	SCOPE(EVP_PKEY, peerPKey, EVP_PKEY_new());
 	EVP_PKEY_set1_EC_KEY(peerPKey.get(), peerECKey.get());
 
-	return Crypto::deriveSharedSecret(pkey.get(), peerPKey.get());
+	return Crypto::deriveSharedSecret(d->pkey.get(), peerPKey.get());
 }
 
 #ifdef _WIN32
