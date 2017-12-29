@@ -7,6 +7,7 @@
 #include <openssl/x509.h>
 
 #include <cmath>
+#include <cstring>
 
 const std::string Crypto::SHA256_MTH = "http://www.w3.org/2001/04/xmlenc#sha256";
 const std::string Crypto::SHA384_MTH = "http://www.w3.org/2001/04/xmlenc#sha384";

@@ -3,6 +3,7 @@
 #include "Crypto.h"
 #include "Token.h"
 
+#include <cstring>
 #include <iostream>
 #include <fstream>
 

@@ -103,4 +103,11 @@ if(APPLE)
 elseif(WIN32)
 	set_target_properties(cdoc PROPERTIES DEBUG_OUTPUT_NAME "cdocd")
 	install(FILES $<TARGET_PDB_FILE:cdoc> $<TARGET_PDB_FILE:cdoc-tool> DESTINATION ${CMAKE_INSTALL_BINDIR} OPTIONAL)
+else()
+	add_custom_target(debs
+		WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+		COMMAND dh_make --createorig --addmissing --defaultless -y -p ${PROJECT_NAME}_${PROJECT_VERSION}
+		COMMAND dch --distribution unstable -v ${PROJECT_VERSION} 'Release: ${PROJECT_VERSION}.'
+		COMMAND dpkg-buildpackage -rfakeroot -us -uc
+	)
 endif()
