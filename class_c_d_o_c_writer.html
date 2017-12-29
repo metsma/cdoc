@@ -52,20 +52,19 @@ $(function() {
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="nested-classes"></a>
 Classes</h2></td></tr>
-<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><b>CDOCWriterPrivate</b></td></tr>
-<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct_c_d_o_c_writer_1_1_file.html">File</a></td></tr>
-<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight"><a class="el" href="struct_c_d_o_c_writer_1_1_file.html" title="File content to be encrypted. ">File</a> content to be encrypted.  <a href="struct_c_d_o_c_writer_1_1_file.html#details">More...</a><br /></td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><b>Private</b></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
 <tr class="memitem:a1a1b6d34d99f523baeb687a18489e694"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_c_d_o_c_writer.html#a1a1b6d34d99f523baeb687a18489e694">CDOCWriter</a> (const std::string &amp;file, const std::string &amp;method=&quot;http://www.w3.org/2009/xmlenc11#aes256-gcm&quot;, const std::string &amp;mime=&quot;application/octet-stream&quot;)</td></tr>
 <tr class="separator:a1a1b6d34d99f523baeb687a18489e694"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aeb59b22b9a7a96733ae89dbc9410c1d4"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_c_d_o_c_writer.html#aeb59b22b9a7a96733ae89dbc9410c1d4">addFile</a> (const std::string &amp;filename, const std::string &amp;mime, const std::vector&lt; unsigned char &gt; &amp;data)</td></tr>
+<tr class="separator:aeb59b22b9a7a96733ae89dbc9410c1d4"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:acd10c29053aa39da414eeee0f0b734fd"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_c_d_o_c_writer.html#acd10c29053aa39da414eeee0f0b734fd">addRecipient</a> (const std::vector&lt; unsigned char &gt; &amp;recipient)</td></tr>
 <tr class="separator:acd10c29053aa39da414eeee0f0b734fd"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ad9f9bd4f0511b693efc83a6cbaca937e"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_c_d_o_c_writer.html#ad9f9bd4f0511b693efc83a6cbaca937e">encryptData</a> (const std::vector&lt; <a class="el" href="struct_c_d_o_c_writer_1_1_file.html">File</a> &gt; &amp;files)</td></tr>
-<tr class="separator:ad9f9bd4f0511b693efc83a6cbaca937e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a2bc8e2a8060680e4be5a49e9f02323f2"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_c_d_o_c_writer.html#a2bc8e2a8060680e4be5a49e9f02323f2">encrypt</a> ()</td></tr>
+<tr class="separator:a2bc8e2a8060680e4be5a49e9f02323f2"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p><a class="el" href="class_c_d_o_c_writer.html" title="CDOCWriter is used for encrypt data. ">CDOCWriter</a> is used for encrypt data. </p>
@@ -103,7 +102,7 @@ Public Member Functions</h2></td></tr>
 </div><div class="memdoc">
 <p><a class="el" href="class_c_d_o_c_writer.html" title="CDOCWriter is used for encrypt data. ">CDOCWriter</a> constructor. </p><dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">file</td><td><a class="el" href="struct_c_d_o_c_writer_1_1_file.html" title="File content to be encrypted. ">File</a> to be created </td></tr>
+    <tr><td class="paramname">file</td><td>File to be created </td></tr>
     <tr><td class="paramname">method</td><td>Encrypton method to be used </td></tr>
     <tr><td class="paramname">mime</td><td>Content type of encrypted data </td></tr>
   </table>
@@ -113,6 +112,48 @@ Public Member Functions</h2></td></tr>
 </div>
 </div>
 <h2 class="groupheader">Member Function Documentation</h2>
+<a id="aeb59b22b9a7a96733ae89dbc9410c1d4"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aeb59b22b9a7a96733ae89dbc9410c1d4">&#9670;&nbsp;</a></span>addFile()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">void CDOCWriter::addFile </td>
+          <td>(</td>
+          <td class="paramtype">const std::string &amp;&#160;</td>
+          <td class="paramname"><em>filename</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const std::string &amp;&#160;</td>
+          <td class="paramname"><em>mime</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const std::vector&lt; unsigned char &gt; &amp;&#160;</td>
+          <td class="paramname"><em>data</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">filename</td><td>Filename of encrypted file </td></tr>
+    <tr><td class="paramname">mime</td><td>Mime type of encrypted file </td></tr>
+    <tr><td class="paramname">data</td><td>Content of encrypted file </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
 <a id="acd10c29053aa39da414eeee0f0b734fd"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#acd10c29053aa39da414eeee0f0b734fd">&#9670;&nbsp;</a></span>addRecipient()</h2>
 
@@ -137,27 +178,21 @@ Public Member Functions</h2></td></tr>
 
 </div>
 </div>
-<a id="ad9f9bd4f0511b693efc83a6cbaca937e"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ad9f9bd4f0511b693efc83a6cbaca937e">&#9670;&nbsp;</a></span>encryptData()</h2>
+<a id="a2bc8e2a8060680e4be5a49e9f02323f2"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a2bc8e2a8060680e4be5a49e9f02323f2">&#9670;&nbsp;</a></span>encrypt()</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">void CDOCWriter::encryptData </td>
+          <td class="memname">void CDOCWriter::encrypt </td>
           <td>(</td>
-          <td class="paramtype">const std::vector&lt; <a class="el" href="struct_c_d_o_c_writer_1_1_file.html">File</a> &gt; &amp;&#160;</td>
-          <td class="paramname"><em>files</em></td><td>)</td>
+          <td class="paramname"></td><td>)</td>
           <td></td>
         </tr>
       </table>
 </div><div class="memdoc">
-<p>Encrypt data </p><dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">files</td><td>List of files to encrypt </td></tr>
-  </table>
-  </dd>
-</dl>
+<p>Encrypt data </p>
 
 </div>
 </div>
