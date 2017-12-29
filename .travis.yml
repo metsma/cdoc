@@ -1,0 +1,24 @@
+language: c++
+sudo: false
+dist: trusty
+osx_image: xcode9.2
+services:
+- docker
+matrix:
+  include:
+  - os: osx
+  - os: linux
+env:
+  global:
+  - BUILD_NUMBER=${TRAVIS_BUILD_NUMBER}
+before_install: if [ "${TRAVIS_OS_NAME}" = "osx" ]; then brew update && brew install --force openssl doxygen; fi
+script: if [ "${TRAVIS_OS_NAME}" = "osx" ]; then
+    mkdir build && cd build && cmake -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl ..;
+    make pkg debugpkg && cd ..;
+  else
+    docker run -e BUILD_NUMBER=${TRAVIS_BUILD_NUMBER} -e DEBFULLNAME="Travis" -e DEBEMAIL="travis-ci@travis" -v $(pwd):$(pwd) -t "ubuntu:16.04" /bin/bash -c "cd $(pwd);"'
+      apt-get update -qq;
+      apt-get install -y dh-make devscripts dpkg-dev cdbs cmake libxml2-dev libssl-dev doxygen;
+      mkdir build && cd build && cmake ..;
+      make debs';
+  fi

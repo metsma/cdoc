@@ -26,22 +26,16 @@ if(DOXYGEN_FOUND)
 	)
 endif()
 
-add_executable(cdoc-tool main.cpp)
-target_link_libraries(cdoc-tool cdoc)
-if(APPLE)
-	file(GLOB RESOURCE_FILES ${CMAKE_BINARY_DIR}/doc/*)
-	list(APPEND RESOURCE_FILES ${CMAKE_BINARY_DIR}/cdoc-tool)
-	set_target_properties(cdoc-tool PROPERTIES
-		BUILD_WITH_INSTALL_RPATH YES
-		INSTALL_RPATH "@executable_path/../../../..;@executable_path"
-	)
-else()
-	install(TARGETS cdoc-tool RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
-	install(DIRECTORY ${CMAKE_BINARY_DIR}/doc/ DESTINATION ${CMAKE_INSTALL_DOCDIR})
-endif()
-
-
-add_library(cdoc SHARED Writer.cpp CDOCWriter.cpp CDOCReader.cpp DDOCWriter.cpp Crypto.cpp Token.cpp ${PUBLIC_HEADER} ${RESOURCE_FILES})
+add_library(cdoc SHARED
+	Writer.cpp
+	CDOCWriter.cpp
+	CDOCReader.cpp
+	DDOCWriter.cpp
+	Crypto.cpp
+	Token.cpp
+	${PUBLIC_HEADER}
+	${RESOURCE_FILES}
+)
 set_target_properties(cdoc PROPERTIES
 	VERSION ${PROJECT_VERSION}
 	SOVERSION 0
@@ -67,6 +61,13 @@ install(TARGETS cdoc
 	FRAMEWORK DESTINATION /Library/Frameworks
 )
 
+add_executable(cdoc-tool main.cpp)
+target_link_libraries(cdoc-tool cdoc)
+if(NOT APPLE)
+	install(TARGETS cdoc-tool RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+	install(DIRECTORY ${CMAKE_BINARY_DIR}/doc/ DESTINATION ${CMAKE_INSTALL_DOCDIR})
+endif()
+
 if(SWIG_FOUND AND WIN32)
 	include(${SWIG_USE_FILE})
 	set(CMAKE_SWIG_FLAGS -dllimport cdoc_csharp -namespace cdoc)
@@ -81,6 +82,18 @@ if(SWIG_FOUND AND WIN32)
 endif()
 
 if(APPLE)
+	add_custom_command(TARGET cdoc-tool POST_BUILD
+		COMMAND cp -a $<TARGET_FILE:cdoc-tool> $<TARGET_FILE_DIR:cdoc>/Resources
+	)
+	if(DOXYGEN_FOUND)
+		add_custom_command(TARGET docs POST_BUILD
+			COMMAND cp -a ${CMAKE_BINARY_DIR}/doc/* $<TARGET_FILE_DIR:cdoc>/Resources/
+		)
+	endif()
+	set_target_properties(cdoc-tool PROPERTIES
+		BUILD_WITH_INSTALL_RPATH YES
+		INSTALL_RPATH "@executable_path/../../../..;@executable_path"
+	)
 	add_custom_target(codesign DEPENDS cdoc
 		COMMAND codesign -f -s "Developer ID Application: ${SIGNCERT}"
 			$<TARGET_FILE_DIR:cdoc>/Resources/cdoc-tool
