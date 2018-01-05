@@ -433,7 +433,7 @@ WinToken::WinToken(bool ui, const std::string &pass)
 	if(ui)
 	{
 		CRYPTUI_SELECTCERTIFICATE_STRUCT pcsc = { sizeof(pcsc) };
-		pcsc.pFilterCallback = WinTokenPrivate::CertFilter;
+		pcsc.pFilterCallback = Private::CertFilter;
 		pcsc.pvCallbackData = d;
 		pcsc.cDisplayStores = 1;
 		pcsc.rghDisplayStores = &store;
