@@ -2,6 +2,7 @@
 #include "CDOCReader.h"
 #include "Crypto.h"
 #include "Token.h"
+#include "DDOCReader.h"
 
 #include <cstring>
 #include <iostream>
@@ -22,8 +23,7 @@ int main(int argc, char *argv[])
 {
 	if(argc >= 5 && strcmp(argv[1], "encrypt") == 0)
 	{
-		CDOCWriter w(argv[argc-1], "http://www.w3.org/2009/xmlenc11#aes256-gcm",
-			argc > 5 ? "application/octet-stream" : "http://www.sk.ee/DigiDoc/v1.3.0/digidoc.xsd");
+		CDOCWriter w(argv[argc-1], "http://www.w3.org/2009/xmlenc11#aes256-gcm");
 		for(int i = 3; i < argc - 1; ++i)
 		{
 			std::string inFile = argv[i];
@@ -46,18 +46,31 @@ int main(int argc, char *argv[])
 #endif
 		CDOCReader r(argv[5]);
 		std::vector<unsigned char> data = r.decryptData(token.get());
-		std::ofstream f(argv[6]);
-		f.write((const char*)data.data(), std::streamsize(data.size()));
+		if(r.mimeType() == "http://www.sk.ee/DigiDoc/v1.3.0/digidoc.xsd")
+		{
+			for(const DDOCReader::File &file: DDOCReader::files(data))
+			{
+				std::string path = std::string(argv[6]) + "/" + file.name;
+				std::ofstream f(path.c_str());
+				f.write((const char*)file.data.data(), std::streamsize(file.data.size()));
+			}
+		}
+		else
+		{
+			std::string path = std::string(argv[6]) + "/" + r.fileName();
+			std::ofstream f(path.c_str());
+			f.write((const char*)data.data(), std::streamsize(data.size()));
+		}
 	}
 	else
 	{
 		std::cout
 			<< "cdoc-tool encrypt X509DerRecipientCert InFile [InFile [InFile [...]]] OutFile" << std::endl
 #ifdef _WIN32
-			<< "cdoc-tool decrypt win [ui|noui] pin InFile OutFile" << std::endl
+			<< "cdoc-tool decrypt win [ui|noui] pin InFile OutFolder" << std::endl
 #endif
-			<< "cdoc-tool decrypt pkcs11 path/to/so pin InFile OutFile" << std::endl
-			<< "cdoc-tool decrypt pkcs12 path/to/pkcs12 pin InFile OutFile" << std::endl;
+			<< "cdoc-tool decrypt pkcs11 path/to/so pin InFile OutFolder" << std::endl
+			<< "cdoc-tool decrypt pkcs12 path/to/pkcs12 pin InFile OutFolder" << std::endl;
 	}
 	return 0;
 }

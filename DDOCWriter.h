@@ -1,10 +1,10 @@
 #pragma once
 
-#include "Writer.h"
+#include "XMLWriter.h"
 
 #include <string>
 
-class DDOCWriter: public Writer
+class DDOCWriter: public XMLWriter
 {
 public:
 	DDOCWriter(const std::string &file);

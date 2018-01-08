@@ -1,4 +1,4 @@
-#include "Writer.h"
+#include "XMLWriter.h"
 
 #include "Crypto.h"
 
@@ -7,14 +7,14 @@
 typedef xmlChar *pxmlChar;
 typedef const xmlChar *pcxmlChar;
 
-struct Writer::Private
+struct XMLWriter::Private
 {
 	xmlBufferPtr buf = nullptr;
 	xmlTextWriterPtr w = nullptr;
 	std::map<std::string, int> nsmap;
 };
 
-Writer::Writer(const std::string &path)
+XMLWriter::XMLWriter(const std::string &path)
 	: d(new Private)
 {
 	if(path.empty())
@@ -27,7 +27,7 @@ Writer::Writer(const std::string &path)
 	xmlTextWriterStartDocument(d->w, nullptr, "UTF-8", nullptr);
 }
 
-Writer::~Writer()
+XMLWriter::~XMLWriter()
 {
 	close();
 	if(d->buf)
@@ -35,7 +35,7 @@ Writer::~Writer()
 	delete d;
 }
 
-std::vector<unsigned char> Writer::data() const
+std::vector<unsigned char> XMLWriter::data() const
 {
 	std::vector<unsigned char> result;
 	if(d->buf)
@@ -43,7 +43,7 @@ std::vector<unsigned char> Writer::data() const
 	return result;
 }
 
-void Writer::close()
+void XMLWriter::close()
 {
 	if(!d->w)
 		return;
@@ -52,7 +52,7 @@ void Writer::close()
 	d->w = nullptr;
 }
 
-void Writer::writeStartElement(const NS &ns, const std::string &name, const std::map<std::string, std::string> &attr)
+void XMLWriter::writeStartElement(const NS &ns, const std::string &name, const std::map<std::string, std::string> &attr)
 {
 	std::map<std::string, int>::iterator pos = d->nsmap.find(ns.prefix);
 	if (pos != d->nsmap.cend())
@@ -67,7 +67,7 @@ void Writer::writeStartElement(const NS &ns, const std::string &name, const std:
 		xmlTextWriterWriteAttribute(d->w, pcxmlChar(i->first.c_str()), pcxmlChar(i->second.c_str()));
 }
 
-void Writer::writeEndElement(const NS &ns)
+void XMLWriter::writeEndElement(const NS &ns)
 {
 	if(d->w)
 		xmlTextWriterEndElement(d->w);
@@ -76,7 +76,7 @@ void Writer::writeEndElement(const NS &ns)
 		pos->second--;
 }
 
-void Writer::writeElement(const NS &ns, const std::string &name, const std::function<void()> &f)
+void XMLWriter::writeElement(const NS &ns, const std::string &name, const std::function<void()> &f)
 {
 	writeStartElement(ns, name, {});
 	if(f)
@@ -84,7 +84,7 @@ void Writer::writeElement(const NS &ns, const std::string &name, const std::func
 	writeEndElement(ns);
 }
 
-void Writer::writeElement(const NS &ns, const std::string &name, const std::map<std::string, std::string> &attr, const std::function<void()> &f)
+void XMLWriter::writeElement(const NS &ns, const std::string &name, const std::map<std::string, std::string> &attr, const std::function<void()> &f)
 {
 	writeStartElement(ns, name, attr);
 	if(f)
@@ -92,7 +92,7 @@ void Writer::writeElement(const NS &ns, const std::string &name, const std::map<
 	writeEndElement(ns);
 }
 
-void Writer::writeBase64Element(const NS &ns, const std::string &name, const std::vector<xmlChar> &data, const std::map<std::string, std::string> &attr)
+void XMLWriter::writeBase64Element(const NS &ns, const std::string &name, const std::vector<xmlChar> &data, const std::map<std::string, std::string> &attr)
 {
 	writeTextElement(ns, name, attr, Crypto::toBase64(data));
 #if 0
@@ -102,7 +102,7 @@ void Writer::writeBase64Element(const NS &ns, const std::string &name, const std
 #endif
 }
 
-void Writer::writeTextElement(const NS &ns, const std::string &name, const std::map<std::string, std::string> &attr, const std::string &data)
+void XMLWriter::writeTextElement(const NS &ns, const std::string &name, const std::map<std::string, std::string> &attr, const std::string &data)
 {
 	writeStartElement(ns, name, attr);
 	if(d->w)

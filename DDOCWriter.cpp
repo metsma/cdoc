@@ -1,6 +1,6 @@
 #include "DDOCWriter.h"
 
-#include "Writer.h"
+#include "XMLWriter.h"
 
 /**
  * @class DDOCWriter
@@ -13,14 +13,14 @@ struct DDOCWriter::Private
 	int fileCount = 0;
 };
 
-const Writer::NS DDOCWriter::Private::DDOC{ "", "http://www.sk.ee/DigiDoc/v1.3.0#" };
+const XMLWriter::NS DDOCWriter::Private::DDOC{ "", "http://www.sk.ee/DigiDoc/v1.3.0#" };
 
 /**
  * DDOCWriter constructor.
  * @param file File to be created
  */
 DDOCWriter::DDOCWriter(const std::string &file)
-	: Writer(file)
+	: XMLWriter(file)
 	, d(new Private)
 {
 	writeStartElement(Private::DDOC, "SignedDoc", {{"format", "DIGIDOC-XML"}, {"version", "1.3"}});
@@ -34,7 +34,7 @@ DDOCWriter::~DDOCWriter()
 void DDOCWriter::close()
 {
 	writeEndElement(Private::DDOC); // SignedDoc
-	Writer::close();
+	XMLWriter::close();
 }
 
 /**

@@ -27,10 +27,11 @@ if(DOXYGEN_FOUND)
 endif()
 
 add_library(cdoc SHARED
-	Writer.cpp
-	CDOCWriter.cpp
 	CDOCReader.cpp
+	CDOCWriter.cpp
 	DDOCWriter.cpp
+	XMLReader.cpp
+	XMLWriter.cpp
 	Crypto.cpp
 	Token.cpp
 	${PUBLIC_HEADER}
@@ -61,7 +62,7 @@ install(TARGETS cdoc
 	FRAMEWORK DESTINATION /Library/Frameworks
 )
 
-add_executable(cdoc-tool main.cpp)
+add_executable(cdoc-tool main.cpp DDOCReader.cpp XMLReader.cpp Crypto.cpp)
 target_link_libraries(cdoc-tool cdoc)
 if(NOT APPLE)
 	install(TARGETS cdoc-tool RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})

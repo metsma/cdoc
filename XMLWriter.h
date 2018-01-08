@@ -5,13 +5,13 @@
 #include <string>
 #include <vector>
 
-class Writer
+class XMLWriter
 {
 public:
 	struct NS { std::string prefix, ns; };
 
-	Writer(const std::string &path);
-	virtual ~Writer();
+	XMLWriter(const std::string &path);
+	virtual ~XMLWriter();
 
 	std::vector<unsigned char> data() const;
 	virtual void close();

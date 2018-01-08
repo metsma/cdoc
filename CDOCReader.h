@@ -12,6 +12,8 @@ public:
 	CDOCReader(const std::string &file);
 	~CDOCReader();
 
+	std::string mimeType() const;
+	std::string fileName() const;
 	std::vector<unsigned char> decryptData(const std::vector<unsigned char> &key);
 	std::vector<unsigned char> decryptData(Token *token);
 

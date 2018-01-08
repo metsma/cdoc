@@ -2,16 +2,12 @@
 
 #include "Crypto.h"
 #include "Token.h"
-
-#include <libxml/xmlreader.h>
+#include "XMLReader.h"
 
 #include <openssl/evp.h>
 #include <openssl/x509.h>
 
 #include <map>
-
-typedef xmlChar *pxmlChar;
-typedef const xmlChar *pcxmlChar;
 
 /**
  * @class CDOCReader
@@ -47,23 +43,6 @@ CDOCReader::CDOCReader(const std::string &file)
 	: d(new Private)
 {
 	d->file = file;
-	auto iselement = [](const xmlChar *name, const char *elem) {
-		return xmlStrEqual(name, pcxmlChar(elem)) == 1;
-	};
-	auto tostring = [](const xmlChar *tmp) {
-		std::string result;
-		if(!tmp)
-			return result;
-		result = (const char*)tmp;
-		return result;
-	};
-	auto attribute = [&](xmlTextReaderPtr reader, const char *attr){
-		xmlChar *tmp = xmlTextReaderGetAttribute(reader, pcxmlChar(attr));
-		std::string result = tostring(tmp);
-		xmlFree(tmp);
-		return result;
-	};
-
 	auto hex2bin = [](const std::string &in) {
 		std::vector<uchar> out;
 		char data[] = "00";
@@ -78,24 +57,21 @@ CDOCReader::CDOCReader(const std::string &file)
 		return out;
 	};
 
-	xmlTextReaderPtr reader = xmlNewTextReaderFilename(file.c_str());
-	int ret = 0;
-	while ((ret = xmlTextReaderRead(reader)) == 1) {
-		const xmlChar *name = xmlTextReaderConstLocalName(reader);
-		if(xmlTextReaderNodeType(reader) == XML_READER_TYPE_END_ELEMENT)
+	XMLReader reader(file);
+	while (reader.read()) {
+		if(reader.isEndElement())
 			continue;
 		// EncryptedData
-		else if(iselement(name, "EncryptedData"))
-			d->mime = attribute(reader, "MimeType");
+		else if(reader.isElement("EncryptedData"))
+			d->mime = reader.attribute("MimeType");
 		// EncryptedData/EncryptionMethod
-		else if(iselement(name, "EncryptionMethod"))
-			d->method = attribute(reader, "Algorithm");
+		else if(reader.isElement("EncryptionMethod"))
+			d->method = reader.attribute("Algorithm");
 		// EncryptedData/EncryptionProperties/EncryptionProperty
-		else if(iselement(name, "EncryptionProperty"))
+		else if(reader.isElement("EncryptionProperty"))
 		{
-			std::string attr = attribute(reader, "Name");
-			ret = xmlTextReaderRead(reader);
-			std::string value = tostring(xmlTextReaderConstValue(reader));
+			std::string attr = reader.attribute("Name");
+			std::string value = reader.readText();
 			if(attr == "orig_file")
 			{
 				Private::File file;
@@ -113,66 +89,52 @@ CDOCReader::CDOCReader(const std::string &file)
 				d->properties[attr] = value;
 		}
 		// EncryptedData/KeyInfo/EncryptedKey
-		else if(iselement(name, "EncryptedKey"))
+		else if(reader.isElement("EncryptedKey"))
 		{
 			Private::Key key;
-			key.id = attribute(reader, "Id");
-			key.recipient = attribute(reader, "Recipient");
-			while((ret = xmlTextReaderRead(reader)) == 1)
+			key.id = reader.attribute("Id");
+			key.recipient = reader.attribute("Recipient");
+			while(reader.read())
 			{
-				const xmlChar *name = xmlTextReaderConstLocalName(reader);
-				if(iselement(name, "EncryptedKey") && xmlTextReaderNodeType(reader) == XML_READER_TYPE_END_ELEMENT)
+				if(reader.isElement("EncryptedKey") && reader.isEndElement())
 					break;
-				else if(xmlTextReaderNodeType(reader) == XML_READER_TYPE_END_ELEMENT)
+				else if(reader.isEndElement())
 					continue;
 				// EncryptedData/KeyInfo/KeyName
-				if(iselement(name, "KeyName"))
-				{
-					ret = xmlTextReaderRead(reader);
-					key.name = tostring(xmlTextReaderConstValue(reader));
-				}
+				if(reader.isElement("KeyName"))
+					key.name = reader.readText();
 				// EncryptedData/KeyInfo/EncryptedKey/EncryptionMethod
-				else if(iselement(name, "EncryptionMethod"))
-					key.method = attribute(reader, "Algorithm");
+				else if(reader.isElement("EncryptionMethod"))
+					key.method = reader.attribute("Algorithm");
 				// EncryptedData/KeyInfo/EncryptedKey/KeyInfo/AgreementMethod
-				else if(iselement(name, "AgreementMethod"))
-					key.agreement = attribute(reader, "Algorithm");
+				else if(reader.isElement("AgreementMethod"))
+					key.agreement = reader.attribute("Algorithm");
 				// EncryptedData/KeyInfo/EncryptedKey/KeyInfo/AgreementMethod/KeyDerivationMethod
-				else if(iselement(name, "KeyDerivationMethod"))
-					key.derive = attribute(reader, "Algorithm");
+				else if(reader.isElement("KeyDerivationMethod"))
+					key.derive = reader.attribute("Algorithm");
 				// EncryptedData/KeyInfo/EncryptedKey/KeyInfo/AgreementMethod/KeyDerivationMethod/ConcatKDFParams
-				else if(iselement(name, "ConcatKDFParams"))
+				else if(reader.isElement("ConcatKDFParams"))
 				{
-					key.AlgorithmID = hex2bin(attribute(reader, "AlgorithmID"));
-					key.PartyUInfo = hex2bin(attribute(reader, "PartyUInfo"));
-					key.PartyVInfo = hex2bin(attribute(reader, "PartyVInfo"));
+					key.AlgorithmID = hex2bin(reader.attribute("AlgorithmID"));
+					key.PartyUInfo = hex2bin(reader.attribute("PartyUInfo"));
+					key.PartyVInfo = hex2bin(reader.attribute("PartyVInfo"));
 				}
 				// EncryptedData/KeyInfo/EncryptedKey/KeyInfo/AgreementMethod/KeyDerivationMethod/ConcatKDFParams/DigestMethod
-				else if(iselement(name, "DigestMethod"))
-					key.concatDigest = attribute(reader, "Algorithm");
+				else if(reader.isElement("DigestMethod"))
+					key.concatDigest = reader.attribute("Algorithm");
 				// EncryptedData/KeyInfo/EncryptedKey/KeyInfo/AgreementMethod/OriginatorKeyInfo/KeyValue/ECKeyValue/PublicKey
-				else if(iselement(name, "PublicKey"))
-				{
-					ret = xmlTextReaderRead(reader);
-					key.publicKey = Crypto::decodeBase64(xmlTextReaderConstValue(reader));
-				}
+				else if(reader.isElement("PublicKey"))
+					key.publicKey = reader.readBase64();
 				// EncryptedData/KeyInfo/EncryptedKey/KeyInfo/X509Data/X509Certificate
-				else if(iselement(name, "X509Certificate"))
-				{
-					ret = xmlTextReaderRead(reader);
-					key.cert = Crypto::decodeBase64(xmlTextReaderConstValue(reader));
-				}
+				else if(reader.isElement("X509Certificate"))
+					key.cert = reader.readBase64();
 				// EncryptedData/KeyInfo/EncryptedKey/KeyInfo/CipherData/CipherValue
-				else if(iselement(name, "CipherValue"))
-				{
-					ret = xmlTextReaderRead(reader);
-					key.cipher = Crypto::decodeBase64(xmlTextReaderConstValue(reader));
-				}
+				else if(reader.isElement("CipherValue"))
+					key.cipher = reader.readBase64();
 			}
 			d->keys.push_back(key);
 		}
 	}
-	xmlFreeTextReader(reader);
 }
 
 CDOCReader::~CDOCReader()
@@ -181,45 +143,49 @@ CDOCReader::~CDOCReader()
 }
 
 /**
+ * Returns decrypted mime type
+ */
+std::string CDOCReader::mimeType() const
+{
+	return d->mime;
+}
+
+/**
+ * Returns decrypted filename
+ */
+std::string CDOCReader::fileName() const
+{
+	return d->properties["Filename"];
+}
+
+/**
  * Returns decrypted data
  * @param key Transport key to used for decrypt data
  */
 std::vector<uchar> CDOCReader::decryptData(const std::vector<uchar> &key)
 {
-	auto iselement = [](const xmlChar *name, const char *elem) {
-		return xmlStrEqual(name, pcxmlChar(elem)) == 1;
-	};
-	xmlTextReaderPtr reader = xmlNewTextReaderFilename(d->file.c_str());
-	const xmlChar *base64 = nullptr;
-	int ret = 0;
+	XMLReader reader(d->file);
+	std::vector<uchar> data;
 	int skipKeyInfo = 0;
-	while ((ret = xmlTextReaderRead(reader)) == 1) {
-		const xmlChar *name = xmlTextReaderConstLocalName(reader);
+	while (reader.read()) {
 		// EncryptedData/KeyInfo
-		if(iselement(name, "KeyInfo") && xmlTextReaderNodeType(reader) == XML_READER_TYPE_END_ELEMENT)
+		if(reader.isElement("KeyInfo") && reader.isEndElement())
 			--skipKeyInfo;
-		else if(iselement(name, "KeyInfo"))
+		else if(reader.isElement("KeyInfo"))
 			++skipKeyInfo;
 		else if(skipKeyInfo > 0)
 			continue;
 		// EncryptedData/CipherData/CipherValue
-		else if(iselement(name, "CipherValue"))
+		else if(reader.isElement("CipherValue"))
 		{
-			ret = xmlTextReaderRead(reader);
-			base64 = xmlTextReaderConstValue(reader);
+			data = reader.readBase64();
 			break;
 		}
 	}
 
 	std::vector<uchar> result;
-	if(!base64)
-	{
-		xmlFreeTextReader(reader);
+	if(data.empty())
 		return result;
-	}
-
-	std::vector<uchar> data = Crypto::decodeBase64(base64);
-	xmlFreeTextReader(reader);
 
 	const EVP_CIPHER *cipher = Crypto::cipher(d->method);
 	std::vector<uchar> iv(data.cbegin(), data.cbegin() + EVP_CIPHER_iv_length(cipher));
