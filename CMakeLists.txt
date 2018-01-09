@@ -26,13 +26,16 @@ if(DOXYGEN_FOUND)
 	)
 endif()
 
-add_library(cdoc SHARED
-	CDOCReader.cpp
-	CDOCWriter.cpp
+add_library(cdoc_private STATIC
+	Crypto.cpp
+	DDOCReader.cpp
 	DDOCWriter.cpp
 	XMLReader.cpp
 	XMLWriter.cpp
-	Crypto.cpp
+)
+add_library(cdoc SHARED
+	CDOCReader.cpp
+	CDOCWriter.cpp
 	Token.cpp
 	${PUBLIC_HEADER}
 	${RESOURCE_FILES}
@@ -52,7 +55,7 @@ set_target_properties(cdoc PROPERTIES
 	VISIBILITY_INLINES_HIDDEN YES
 )
 generate_export_header(cdoc EXPORT_FILE_NAME CDOCExport.h)
-target_link_libraries(cdoc ${LIBXML2_LIBRARIES} ${OPENSSL_CRYPTO_LIBRARY} ${LIBS})
+target_link_libraries(cdoc cdoc_private ${LIBXML2_LIBRARIES} ${OPENSSL_CRYPTO_LIBRARY} ${LIBS})
 install(TARGETS cdoc
 	LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
 	ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
@@ -62,7 +65,7 @@ install(TARGETS cdoc
 	FRAMEWORK DESTINATION /Library/Frameworks
 )
 
-add_executable(cdoc-tool main.cpp DDOCReader.cpp XMLReader.cpp Crypto.cpp)
+add_executable(cdoc-tool main.cpp)
 target_link_libraries(cdoc-tool cdoc)
 if(NOT APPLE)
 	install(TARGETS cdoc-tool RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
