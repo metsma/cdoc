@@ -33,6 +33,8 @@ add_library(cdoc_private STATIC
 	XMLReader.cpp
 	XMLWriter.cpp
 )
+set_property(TARGET cdoc_private PROPERTY POSITION_INDEPENDENT_CODE ON)
+
 add_library(cdoc SHARED
 	CDOCReader.cpp
 	CDOCWriter.cpp
@@ -102,7 +104,6 @@ if(APPLE)
 		COMMAND codesign -f -s "Developer ID Application: ${SIGNCERT}"
 			$<TARGET_FILE_DIR:cdoc>/Resources/cdoc-tool
 			$<TARGET_FILE_DIR:cdoc>/../..
-		COMMAND touch $<TARGET_FILE:cdoc>
 	)
 	if(SIGNCERT)
 		set(PKGEXTRA --sign "Developer ID Installer: ${SIGNCERT}")

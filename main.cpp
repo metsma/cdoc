@@ -13,16 +13,22 @@
 
 static std::wstring toWide(UINT codePage, const std::string &in)
 {
+	std::wstring result;
+	if(in.empty())
+		return result;
 	int len = MultiByteToWideChar(codePage, 0, in.data(), int(in.size()), nullptr, 0);
-	std::wstring result(size_t(len), 0);
+	result.resize(size_t(len), 0);
 	len = MultiByteToWideChar(codePage, 0, in.data(), int(in.size()), &result[0], len);
 	return result;
 }
 
 static std::string toMultiByte(UINT codePage, const std::wstring &in)
 {
+	std::string result;
+	if(in.empty())
+		return result;
 	int len = WideCharToMultiByte(codePage, 0, in.data(), int(in.size()), nullptr, 0, nullptr, nullptr);
-	std::string result(size_t(len), 0);
+	result.resize(size_t(len), 0);
 	len = WideCharToMultiByte(codePage, 0, in.data(), int(in.size()), &result[0], len, nullptr, nullptr);
 	return result;
 }
@@ -30,21 +36,8 @@ static std::string toMultiByte(UINT codePage, const std::wstring &in)
 
 static std::string toUTF8(const std::string &in)
 {
-	if(in.empty())
-		return in;
 #ifdef _WIN32
 	return toMultiByte(CP_UTF8, toWide(CP_ACP, in));
-#else
-	return in;
-#endif
-}
-
-static std::string fromUTF8(const std::string &in)
-{
-	if(in.empty())
-		return in;
-#ifdef _WIN32
-	return toMultiByte(CP_ACP, toWide(CP_UTF8, in));
 #else
 	return in;
 #endif
@@ -53,8 +46,7 @@ static std::string fromUTF8(const std::string &in)
 static std::vector<unsigned char> readFile(const std::string &path)
 {
 #ifdef _WIN32
-	std::wstring wide = toWide(CP_UTF8, path);
-	std::ifstream f(wide.c_str(), std::ifstream::binary);
+	std::ifstream f(toWide(CP_UTF8, path).c_str(), std::ifstream::binary);
 #else
 	std::ifstream f(path, std::ifstream::binary);
 #endif
@@ -69,8 +61,7 @@ static std::vector<unsigned char> readFile(const std::string &path)
 static void writeFile(const std::string &path, const std::vector<unsigned char> &data)
 {
 #ifdef _WIN32
-	std::wstring wide = toWide(CP_UTF8, path);
-	std::ofstream f(wide.c_str());
+	std::ofstream f(toWide(CP_UTF8, path).c_str());
 #else
 	std::ofstream f(path.c_str());
 #endif
