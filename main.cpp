@@ -61,9 +61,9 @@ static std::vector<unsigned char> readFile(const std::string &path)
 static void writeFile(const std::string &path, const std::vector<unsigned char> &data)
 {
 #ifdef _WIN32
-	std::ofstream f(toWide(CP_UTF8, path).c_str());
+	std::ofstream f(toWide(CP_UTF8, path).c_str(), std::ofstream::binary);
 #else
-	std::ofstream f(path.c_str());
+	std::ofstream f(path.c_str(), std::ofstream::binary);
 #endif
 	f.write((const char*)data.data(), std::streamsize(data.size()));
 }
