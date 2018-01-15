@@ -94,12 +94,9 @@ void XMLWriter::writeElement(const NS &ns, const std::string &name, const std::m
 
 void XMLWriter::writeBase64Element(const NS &ns, const std::string &name, const std::vector<xmlChar> &data, const std::map<std::string, std::string> &attr)
 {
-	writeTextElement(ns, name, attr, Crypto::toBase64(data));
-#if 0
-	writeStartElement(ns, name, {});
+	writeStartElement(ns, name, attr);
 	xmlTextWriterWriteBase64(d->w, (const char*)data.data(), 0, int(data.size()));
 	writeEndElement(ns);
-#endif
 }
 
 void XMLWriter::writeTextElement(const NS &ns, const std::string &name, const std::map<std::string, std::string> &attr, const std::string &data)

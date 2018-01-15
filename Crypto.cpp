@@ -1,7 +1,6 @@
 #include "Crypto.h"
 
 #include <openssl/aes.h>
-#include <openssl/evp.h>
 #include <openssl/rand.h>
 #include <openssl/sha.h>
 #include <openssl/x509.h>
@@ -216,14 +215,6 @@ uint32_t Crypto::keySize(const std::string &algo)
 	if(algo == KWAES192_MTH) return 24;
 	if(algo == KWAES256_MTH) return 32;
 	return 0;
-}
-
-std::string Crypto::toBase64(const std::vector<uchar> &data)
-{
-	std::string result(((data.size() + 2) / 3) * 4, 0);
-	int size = EVP_EncodeBlock((uchar*)&result[0], data.data(), int(data.size()));
-	result.resize(size_t(size));
-	return result;
 }
 
 X509* Crypto::toX509(const std::vector<uchar> &data)

@@ -33,7 +33,6 @@ public:
 	static std::vector<uchar> deriveSharedSecret(EVP_PKEY *pkey, EVP_PKEY *peerPKey);
 	static Key generateKey(const std::string &method);
 	static uint32_t keySize(const std::string &algo);
-	static std::string toBase64(const std::vector<uchar> &data);
 	template <typename F>
 	static std::string toHex(const F &data)
 	{
