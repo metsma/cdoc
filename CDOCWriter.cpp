@@ -8,14 +8,13 @@
 
 #include <fstream>
 
-template<typename CharT, typename TraitsT = std::char_traits<CharT> >
-class vectorwrapbuf : public std::basic_streambuf<CharT, TraitsT> {
+class vectorwrapbuf : public std::basic_streambuf<char, std::char_traits<char>> {
 public:
-	vectorwrapbuf(std::vector<CharT> &vec) {
+	vectorwrapbuf(std::vector<char> &vec) {
 		setg(vec.data(), vec.data(), vec.data() + vec.size());
 	}
 	vectorwrapbuf(std::vector<uchar> &vec) {
-		setg((CharT*)vec.data(), (CharT*)vec.data(), (CharT*)vec.data() + vec.size());
+		setg((char*)vec.data(), (char*)vec.data(), (char*)vec.data() + vec.size());
 	}
 };
 
@@ -218,7 +217,7 @@ void CDOCWriter::encrypt()
 				ddoc.addFile(file.filename, file.mime, file.data);
 			ddoc.close();
 			std::vector<uchar> data = ddoc.data();
-			vectorwrapbuf<char> databuf(data);
+			vectorwrapbuf databuf(data);
 			std::istream in(&databuf);
 			d->writeBase64Element(Private::DENC, "CipherValue", Crypto::encrypt(d->method, d->transportKey, in));
 		}
@@ -231,7 +230,7 @@ void CDOCWriter::encrypt()
 			}
 			else
 			{
-				vectorwrapbuf<char> databuf(d->files.at(0).data);
+				vectorwrapbuf databuf(d->files.at(0).data);
 				std::istream in(&databuf);
 				d->writeBase64Element(Private::DENC, "CipherValue", Crypto::encrypt(d->method, d->transportKey, in));
 			}
