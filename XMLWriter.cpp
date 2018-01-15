@@ -95,7 +95,8 @@ void XMLWriter::writeElement(const NS &ns, const std::string &name, const std::m
 void XMLWriter::writeBase64Element(const NS &ns, const std::string &name, const std::vector<xmlChar> &data, const std::map<std::string, std::string> &attr)
 {
 	writeStartElement(ns, name, attr);
-	xmlTextWriterWriteBase64(d->w, (const char*)data.data(), 0, int(data.size()));
+	if (d->w)
+		xmlTextWriterWriteBase64(d->w, (const char*)data.data(), 0, int(data.size()));
 	writeEndElement(ns);
 }
 
