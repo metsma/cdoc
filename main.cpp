@@ -45,13 +45,16 @@ static std::string toUTF8(const std::string &in)
 
 static std::vector<unsigned char> readFile(const std::string &path)
 {
+	std::vector<unsigned char> data;
 #ifdef _WIN32
 	std::ifstream f(toWide(CP_UTF8, path).c_str(), std::ifstream::binary);
 #else
 	std::ifstream f(path, std::ifstream::binary);
 #endif
+	if (!f)
+		return data;
 	f.seekg(0, std::ifstream::end);
-	std::vector<unsigned char> data(size_t(f.tellg()), 0);
+	data.resize(size_t(f.tellg()));
 	f.clear();
 	f.seekg(0);
 	f.read((char*)data.data(), std::streamsize(data.size()));
@@ -77,7 +80,7 @@ int main(int argc, char *argv[])
 		{
 			std::string inFile = toUTF8(argv[i]);
 			size_t pos = inFile.find_last_of("/\\");
-			w.addFile(pos == std::string::npos ? inFile : inFile.substr(pos + 1), "application/octet-stream", readFile(inFile));
+			w.addFile(pos == std::string::npos ? inFile : inFile.substr(pos + 1), "application/octet-stream", inFile);
 		}
 		w.addRecipient(readFile(toUTF8(argv[2])));
 		w.encrypt();

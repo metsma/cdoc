@@ -119,17 +119,31 @@ std::vector<uchar> Crypto::concatKDF(const std::string &hashAlg, uint32_t keyDat
 	return concatKDF(hashAlg, keyDataLen, z, otherInfo);
 }
 
-std::vector<uchar> Crypto::encrypt(const std::string &method, const Key &key, const std::vector<uchar> &data)
+std::vector<uchar> Crypto::encrypt(const std::string &method, const Key &key, std::istream &in)
 {
 	const EVP_CIPHER *c = cipher(method);
 	SCOPE(EVP_CIPHER_CTX, ctx, EVP_CIPHER_CTX_new());
 	EVP_CipherInit(ctx.get(), c, key.key.data(), key.iv.data(), 1);
-	int size = 0;
-	std::vector<uchar> result(data.size() + size_t(EVP_CIPHER_CTX_block_size(ctx.get())), 0);
-	EVP_CipherUpdate(ctx.get(), result.data(), &size, data.data(), int(data.size()));
-	int size2 = 0;
-	EVP_CipherFinal(ctx.get(), &result[size_t(size)], &size2);
-	result.resize(size_t(size + size2));
+
+	in.seekg(0, std::istream::end);
+	std::istream::pos_type pos = in.tellg();
+	std::vector<uchar> result((pos < 0 ? 0 : (unsigned long)pos) + size_t(EVP_CIPHER_CTX_block_size(ctx.get())), 0);
+	in.clear();
+	in.seekg(0);
+
+	std::vector<char> buf(10 * 1024, 0);
+	int sizeIn = 0, sizeTotal = 0;
+	while (in)
+	{
+		in.read(buf.data(), buf.size());
+		if (in.gcount() > 0)
+		{
+			EVP_CipherUpdate(ctx.get(), &result[sizeTotal], &sizeIn, (const uchar*)buf.data(), int(in.gcount()));
+			sizeTotal += sizeIn;
+		}
+	}
+	EVP_CipherFinal(ctx.get(), &result[size_t(sizeTotal)], &sizeIn);
+	result.resize(size_t(sizeTotal + sizeIn));
 	result.insert(result.cbegin(), key.iv.cbegin(), key.iv.cend());
 	if(EVP_CIPHER_mode(c) == EVP_CIPH_GCM_MODE)
 	{

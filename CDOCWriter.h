@@ -12,6 +12,7 @@ public:
 	~CDOCWriter();
 
 	void addFile(const std::string &filename, const std::string &mime, const std::vector<unsigned char> &data);
+	void addFile(const std::string &filename, const std::string &mime, const std::string &path);
 	void addRecipient(const std::vector<unsigned char> &recipient);
 	void encrypt();
 

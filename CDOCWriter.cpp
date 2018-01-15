@@ -6,6 +6,19 @@
 
 #include <openssl/x509.h>
 
+#include <fstream>
+
+template<typename CharT, typename TraitsT = std::char_traits<CharT> >
+class vectorwrapbuf : public std::basic_streambuf<CharT, TraitsT> {
+public:
+	vectorwrapbuf(std::vector<CharT> &vec) {
+		setg(vec.data(), vec.data(), vec.data() + vec.size());
+	}
+	vectorwrapbuf(std::vector<uchar> &vec) {
+		setg((CharT*)vec.data(), (CharT*)vec.data(), (CharT*)vec.data() + vec.size());
+	}
+};
+
 /**
  * @class CDOCWriter
  * @brief CDOCWriter is used for encrypt data.
@@ -19,7 +32,7 @@ struct CDOCWriter::Private: public XMLWriter
 	Crypto::Key transportKey;
 	struct File
 	{
-		std::string filename, mime;
+		std::string filename, mime, path;
 		std::vector<uchar> data;
 	};
 	std::vector<File> files;
@@ -58,7 +71,18 @@ CDOCWriter::~CDOCWriter()
 void CDOCWriter::addFile(const std::string &filename,
 	const std::string &mime, const std::vector<uchar> &data)
 {
-	d->files.push_back({filename, mime, data});
+	d->files.push_back({ filename, mime, std::string(), data });
+}
+
+/**
+* @param filename Filename of encrypted file
+* @param mime Mime type of encrypted file
+* @param path Content of encrypted file
+*/
+void CDOCWriter::addFile(const std::string &filename,
+	const std::string &mime, const std::string &path)
+{
+	d->files.push_back({ filename, mime, path, std::vector<uchar>() });
 }
 
 /**
@@ -193,10 +217,25 @@ void CDOCWriter::encrypt()
 			for(const Private::File &file: d->files)
 				ddoc.addFile(file.filename, file.mime, file.data);
 			ddoc.close();
-			d->writeBase64Element(Private::DENC, "CipherValue", Crypto::encrypt(d->method, d->transportKey, ddoc.data()));
+			std::vector<uchar> data = ddoc.data();
+			vectorwrapbuf<char> databuf(data);
+			std::istream in(&databuf);
+			d->writeBase64Element(Private::DENC, "CipherValue", Crypto::encrypt(d->method, d->transportKey, in));
 		}
 		else
-			d->writeBase64Element(Private::DENC, "CipherValue", Crypto::encrypt(d->method, d->transportKey, d->files.at(0).data));
+		{
+			if (!d->files.at(0).path.empty())
+			{
+				std::ifstream in(d->files.at(0).path, std::ifstream::binary);
+				d->writeBase64Element(Private::DENC, "CipherValue", Crypto::encrypt(d->method, d->transportKey, in));
+			}
+			else
+			{
+				vectorwrapbuf<char> databuf(d->files.at(0).data);
+				std::istream in(&databuf);
+				d->writeBase64Element(Private::DENC, "CipherValue", Crypto::encrypt(d->method, d->transportKey, in));
+			}
+		}
 	});
 	d->writeElement(Private::DENC, "EncryptionProperties", [&]{
 		d->writeTextElement(Private::DENC, "EncryptionProperty", {{"Name", "LibraryVersion"}}, "cdoc|0.0.1");

@@ -1,4 +1,4 @@
-#powershell -ExecutionPolicy ByPass -File build.ps1 [-openssl] [-libxml] [-cdoc]
+#powershell -ExecutionPolicy ByPass -File build.ps1 [-openssl] [-libxml2] [-cdoc]
 param(
     [string]$msiversion = "0.0.1.0",
     [string]$msi_name = "cdoc-$msiversion$env:VER_SUFFIX.msi",
