@@ -1,12 +1,12 @@
 #include "CDOCWriter.h"
 #include "CDOCReader.h"
-#include "Crypto.h"
 #include "Token.h"
 #include "DDOCReader.h"
 
 #include <cstring>
 #include <iostream>
 #include <fstream>
+#include <memory>
 
 #ifdef _WIN32
 #include <Windows.h>

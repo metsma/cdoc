@@ -158,7 +158,10 @@ std::vector<uchar> Crypto::encrypt(const std::string &method, const Key &key, st
 
 std::vector<uchar> Crypto::decodeBase64(const uchar *data)
 {
-	std::vector<uchar> result(strlen((const char*)data), 0);
+	std::vector<uchar> result;
+	if (!data)
+		return result;
+	result.resize(strlen((const char*)data));
 	EVP_ENCODE_CTX ctx;
 	EVP_DecodeInit(&ctx);
 	int size1 = 0, size2 = 0;

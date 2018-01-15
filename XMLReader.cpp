@@ -69,7 +69,7 @@ bool XMLReader::read()
 
 std::vector<uchar> XMLReader::readBase64()
 {
-	return Crypto::decodeBase64((const uchar*)readText().c_str());
+	return Crypto::decodeBase64(xmlTextReaderConstValue(d->reader));
 }
 
 std::string XMLReader::readText()
