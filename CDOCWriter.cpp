@@ -8,16 +8,6 @@
 
 #include <fstream>
 
-class vectorwrapbuf : public std::basic_streambuf<char, std::char_traits<char>> {
-public:
-	vectorwrapbuf(std::vector<char> &vec) {
-		setg(vec.data(), vec.data(), vec.data() + vec.size());
-	}
-	vectorwrapbuf(std::vector<uchar> &vec) {
-		setg((char*)vec.data(), (char*)vec.data(), (char*)vec.data() + vec.size());
-	}
-};
-
 /**
  * @class CDOCWriter
  * @brief CDOCWriter is used for encrypt data.
@@ -25,6 +15,17 @@ public:
 
 struct CDOCWriter::Private: public XMLWriter
 {
+	class vectorwrapbuf : public std::basic_streambuf<char, std::char_traits<char>> {
+	public:
+		vectorwrapbuf(std::vector<char> &vec) {
+			setg(vec.data(), vec.data(), vec.data() + vec.size());
+		}
+		vectorwrapbuf(std::vector<uchar> &vec) {
+			setg((char*)vec.data(), (char*)vec.data(), (char*)vec.data() + vec.size());
+		}
+	};
+
+
 	Private(const std::string &file): XMLWriter(file) {}
 	static const NS DENC, DS, XENC11, DSIG11;
 	std::string method, documentFormat = "ENCDOC-XML|1.1";
@@ -217,7 +218,7 @@ void CDOCWriter::encrypt()
 				ddoc.addFile(file.filename, file.mime, file.data);
 			ddoc.close();
 			std::vector<uchar> data = ddoc.data();
-			vectorwrapbuf databuf(data);
+			Private::vectorwrapbuf databuf(data);
 			std::istream in(&databuf);
 			d->writeBase64Element(Private::DENC, "CipherValue", Crypto::encrypt(d->method, d->transportKey, in));
 		}
@@ -230,7 +231,7 @@ void CDOCWriter::encrypt()
 			}
 			else
 			{
-				vectorwrapbuf databuf(d->files.at(0).data);
+				Private::vectorwrapbuf databuf(d->files.at(0).data);
 				std::istream in(&databuf);
 				d->writeBase64Element(Private::DENC, "CipherValue", Crypto::encrypt(d->method, d->transportKey, in));
 			}
@@ -239,7 +240,7 @@ void CDOCWriter::encrypt()
 	d->writeElement(Private::DENC, "EncryptionProperties", [&]{
 		d->writeTextElement(Private::DENC, "EncryptionProperty", {{"Name", "LibraryVersion"}}, "cdoc|0.0.1");
 		d->writeTextElement(Private::DENC, "EncryptionProperty", {{"Name", "DocumentFormat"}}, d->documentFormat);
-		d->writeTextElement(Private::DENC, "EncryptionProperty", {{"Name", "Filename"}}, "tmp.ddoc");
+		d->writeTextElement(Private::DENC, "EncryptionProperty", {{"Name", "Filename"}}, d->files.size() == 1 ? d->files.at(0).filename : "tmp.ddoc");
 		for(const Private::File &file: d->files)
 		{
 			d->writeTextElement(Private::DENC, "EncryptionProperty", {{"Name", "orig_file"}},

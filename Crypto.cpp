@@ -220,6 +220,14 @@ uint32_t Crypto::keySize(const std::string &algo)
 	return 0;
 }
 
+std::string Crypto::toBase64(const uchar *data, size_t len)
+{
+	std::string result(((len + 2) / 3) * 4, 0);
+	int size = EVP_EncodeBlock((uchar*)&result[0], data, int(len));
+	result.resize(size_t(size));
+	return result;
+}
+
 X509* Crypto::toX509(const std::vector<uchar> &data)
 {
 	const uchar *p = data.data();

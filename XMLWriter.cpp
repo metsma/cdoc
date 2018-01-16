@@ -4,6 +4,8 @@
 
 #include <libxml/xmlwriter.h>
 
+#include <algorithm>
+
 typedef xmlChar *pxmlChar;
 typedef const xmlChar *pcxmlChar;
 
@@ -94,9 +96,15 @@ void XMLWriter::writeElement(const NS &ns, const std::string &name, const std::m
 
 void XMLWriter::writeBase64Element(const NS &ns, const std::string &name, const std::vector<xmlChar> &data, const std::map<std::string, std::string> &attr)
 {
+	if (!d->w)
+		return;
 	writeStartElement(ns, name, attr);
-	if (d->w)
-		xmlTextWriterWriteBase64(d->w, (const char*)data.data(), 0, int(data.size()));
+	static const size_t bufLen = 48 * 10240;
+	for (size_t i = 0; i < data.size(); i += bufLen)
+	{
+		std::string b64 = Crypto::toBase64(&data[i], std::min<size_t>(data.size() - i, bufLen));
+		xmlTextWriterWriteRaw(d->w, (const xmlChar*)b64.c_str());
+	}
 	writeEndElement(ns);
 }
 

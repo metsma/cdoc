@@ -9,7 +9,6 @@ typedef const xmlChar *pcxmlChar;
 
 struct XMLReader::Private
 {
-	xmlParserInputBufferPtr in = nullptr;
 	xmlTextReaderPtr reader = nullptr;
 
 	std::string tostring(const xmlChar *tmp)
@@ -25,22 +24,19 @@ struct XMLReader::Private
 XMLReader::XMLReader(const std::string &file)
 	: d(new Private)
 {
-	d->reader = xmlNewTextReaderFilename(file.c_str());
+	d->reader = xmlReaderForFile(file.c_str(), nullptr, XML_PARSE_HUGE);
 }
 
 XMLReader::XMLReader(const std::vector<uchar> &data)
 	: d(new Private)
 {
-	d->in = xmlParserInputBufferCreateMem((const char*)data.data(), int(data.size()), XML_CHAR_ENCODING_UTF8);
-	d->reader = xmlNewTextReader(d->in, nullptr);
+	d->reader = xmlReaderForMemory((const char*)data.data(), int(data.size()), nullptr, nullptr, XML_PARSE_HUGE);
 }
 
 XMLReader::~XMLReader()
 {
 	if(d->reader)
 		xmlFreeTextReader(d->reader);
-	if(d->in)
-		xmlFreeParserInputBuffer(d->in);
 	delete d;
 }
 
@@ -69,6 +65,7 @@ bool XMLReader::read()
 
 std::vector<uchar> XMLReader::readBase64()
 {
+	xmlTextReaderRead(d->reader);
 	return Crypto::decodeBase64(xmlTextReaderConstValue(d->reader));
 }
 
