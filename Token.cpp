@@ -495,7 +495,10 @@ WinToken::~WinToken()
 
 std::vector<uchar> WinToken::cert() const
 {
-	return std::vector<uchar>(d->cert->pbCertEncoded, d->cert->pbCertEncoded + d->cert->cbCertEncoded);
+	std::vector<uchar> result;
+	if (d->cert)
+		result.assign(d->cert->pbCertEncoded, d->cert->pbCertEncoded + d->cert->cbCertEncoded);
+	return result;
 }
 
 std::vector<uchar> WinToken::decrypt(const std::vector<uchar> &data) const

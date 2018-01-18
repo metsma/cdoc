@@ -75,7 +75,7 @@ int main(int argc, char *argv[])
 {
 	if(argc >= 5 && strcmp(argv[1], "encrypt") == 0)
 	{
-		CDOCWriter w(toUTF8(argv[argc-1]), "http://www.w3.org/2009/xmlenc11#aes256-gcm");
+		CDOCWriter w(toUTF8(argv[argc-1]));
 		for(int i = 2; i < argc - 1; ++i)
 		{
 			if (strcmp(argv[i], "-r") == 0)
