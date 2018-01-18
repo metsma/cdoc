@@ -76,13 +76,20 @@ int main(int argc, char *argv[])
 	if(argc >= 5 && strcmp(argv[1], "encrypt") == 0)
 	{
 		CDOCWriter w(toUTF8(argv[argc-1]), "http://www.w3.org/2009/xmlenc11#aes256-gcm");
-		for(int i = 3; i < argc - 1; ++i)
+		for(int i = 2; i < argc - 1; ++i)
 		{
-			std::string inFile = toUTF8(argv[i]);
-			size_t pos = inFile.find_last_of("/\\");
-			w.addFile(pos == std::string::npos ? inFile : inFile.substr(pos + 1), "application/octet-stream", inFile);
+			if (strcmp(argv[i], "-r") == 0)
+			{
+				w.addRecipient(readFile(toUTF8(argv[i + 1])));
+				++i;
+			}
+			else
+			{
+				std::string inFile = toUTF8(argv[i]);
+				size_t pos = inFile.find_last_of("/\\");
+				w.addFile(pos == std::string::npos ? inFile : inFile.substr(pos + 1), "application/octet-stream", inFile);
+			}
 		}
-		w.addRecipient(readFile(toUTF8(argv[2])));
 		w.encrypt();
 	}
 	else if(argc == 7 && strcmp(argv[1], "decrypt") == 0)
@@ -109,7 +116,7 @@ int main(int argc, char *argv[])
 	else
 	{
 		std::cout
-			<< "cdoc-tool encrypt X509DerRecipientCert InFile [InFile [InFile [...]]] OutFile" << std::endl
+			<< "cdoc-tool encrypt -r X509DerRecipientCert [-r X509DerRecipientCert [...]] InFile [InFile [...]] OutFile" << std::endl
 #ifdef _WIN32
 			<< "cdoc-tool decrypt win [ui|noui] pin InFile OutFolder" << std::endl
 #endif

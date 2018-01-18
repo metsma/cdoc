@@ -97,6 +97,8 @@ void CDOCWriter::addRecipient(const std::vector<uchar> &recipient)
 void CDOCWriter::Private::writeRecipient(const std::vector<uchar> &recipient)
 {
 	SCOPE(X509, peerCert, Crypto::toX509(recipient));
+	if (!peerCert)
+		return;
 	X509_NAME *name = X509_get_subject_name(peerCert.get());
 	int pos = X509_NAME_get_index_by_NID(name, NID_commonName, 0);
 	X509_NAME_ENTRY *e = X509_NAME_get_entry(name, pos);
@@ -243,8 +245,16 @@ void CDOCWriter::encrypt()
 		d->writeTextElement(Private::DENC, "EncryptionProperty", {{"Name", "Filename"}}, d->files.size() == 1 ? d->files.at(0).filename : "tmp.ddoc");
 		for(const Private::File &file: d->files)
 		{
+			size_t size = file.data.size();
+			if (!file.path.empty())
+			{
+				std::ifstream in(d->files.at(0).path, std::ifstream::binary);
+				in.seekg(0, std::istream::end);
+				std::istream::pos_type pos = in.tellg();
+				size = pos < 0 ? 0 : (unsigned long)pos;
+			}
 			d->writeTextElement(Private::DENC, "EncryptionProperty", {{"Name", "orig_file"}},
-				file.filename + "|" + std::to_string(file.data.size()) + "|" + file.mime + "|D0");
+				file.filename + "|" + std::to_string(size) + "|" + file.mime + "|D0");
 		}
 	});
 	d->writeEndElement(Private::DENC); // EncryptedData
