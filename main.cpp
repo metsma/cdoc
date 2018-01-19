@@ -90,7 +90,10 @@ int main(int argc, char *argv[])
 				w.addFile(pos == std::string::npos ? inFile : inFile.substr(pos + 1), "application/octet-stream", inFile);
 			}
 		}
-		w.encrypt();
+		if(w.encrypt())
+			std::cout << "Success" << std::endl;
+		else
+			std::cout << w.lastError() << std::endl;
 	}
 	else if(argc == 7 && strcmp(argv[1], "decrypt") == 0)
 	{

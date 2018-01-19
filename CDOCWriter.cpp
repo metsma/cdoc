@@ -25,10 +25,9 @@ struct CDOCWriter::Private: public XMLWriter
 		}
 	};
 
-
 	Private(const std::string &file): XMLWriter(file) {}
 	static const NS DENC, DS, XENC11, DSIG11;
-	std::string method, documentFormat = "ENCDOC-XML|1.1";
+	std::string method, documentFormat = "ENCDOC-XML|1.1", lastError;
 	Crypto::Key transportKey;
 	struct File
 	{
@@ -37,7 +36,7 @@ struct CDOCWriter::Private: public XMLWriter
 	};
 	std::vector<File> files;
 	std::vector<std::vector<uchar>> recipients;
-	void writeRecipient(const std::vector<uchar> &recipient);
+	bool writeRecipient(const std::vector<uchar> &recipient);
 };
 
 const XMLWriter::NS CDOCWriter::Private::DENC{ "denc", "http://www.w3.org/2001/04/xmlenc#" };
@@ -94,19 +93,37 @@ void CDOCWriter::addRecipient(const std::vector<uchar> &recipient)
 	d->recipients.push_back(recipient);
 }
 
-void CDOCWriter::Private::writeRecipient(const std::vector<uchar> &recipient)
+/**
+ * Returns last error when CDOCWriter::encrypt fails
+ */
+std::string CDOCWriter::lastError() const
+{
+	return d->lastError;
+}
+
+bool CDOCWriter::Private::writeRecipient(const std::vector<uchar> &recipient)
 {
 	SCOPE(X509, peerCert, Crypto::toX509(recipient));
-	if (!peerCert)
-		return;
-	X509_NAME *name = X509_get_subject_name(peerCert.get());
-	int pos = X509_NAME_get_index_by_NID(name, NID_commonName, 0);
-	X509_NAME_ENTRY *e = X509_NAME_get_entry(name, pos);
-	char *data = nullptr;
-	int size = ASN1_STRING_to_UTF8((uchar**)&data, X509_NAME_ENTRY_get_data(e));
-	std::string cn(data, size_t(size));
-	OPENSSL_free(data);
+	if(!peerCert)
+		return false;
+	std::string cn = [&]{
+		std::string cn;
+		X509_NAME *name = X509_get_subject_name(peerCert.get());
+		if(!name)
+			return cn;
+		int pos = X509_NAME_get_index_by_NID(name, NID_commonName, 0);
+		if(pos == -1)
+			return cn;
+		X509_NAME_ENTRY *e = X509_NAME_get_entry(name, pos);
+		if(!e)
+			return cn;
+		char *data = nullptr;
+		int size = ASN1_STRING_to_UTF8((uchar**)&data, X509_NAME_ENTRY_get_data(e));
 
+		cn.assign(data, size_t(size));
+		OPENSSL_free(data);
+		return cn;
+	}();
 	writeElement(Private::DENC, "EncryptedKey", {{"Recipient", cn}}, [&]{
 		std::vector<uchar> encryptedData;
 		SCOPE(EVP_PKEY, peerPKey, X509_get_pubkey(peerCert.get()));
@@ -197,18 +214,25 @@ void CDOCWriter::Private::writeRecipient(const std::vector<uchar> &recipient)
 			writeBase64Element(Private::DENC, "CipherValue", encryptedData);
 		});
 	});
+	return true;
 }
 
 /**
  * Encrypt data
  */
-void CDOCWriter::encrypt()
+bool CDOCWriter::encrypt()
 {
 	d->writeStartElement(Private::DENC, "EncryptedData", {{"MimeType", d->files.size() > 1 ? "http://www.sk.ee/DigiDoc/v1.3.0/digidoc.xsd" : "application/octet-stream"}});
 	d->writeElement(Private::DENC, "EncryptionMethod", {{"Algorithm", d->method}});
 	d->writeStartElement(Private::DS, "KeyInfo", {});
 	for(const std::vector<uchar> &recipient: d->recipients)
-		d->writeRecipient(recipient);
+	{
+		if(!d->writeRecipient(recipient))
+		{
+			d->lastError = "Failed to write Recipient info";
+			return false;
+		}
+	}
 	d->writeEndElement(Private::DS); // KeyInfo
 
 	std::vector<uchar> data;
@@ -258,4 +282,5 @@ void CDOCWriter::encrypt()
 		}
 	});
 	d->writeEndElement(Private::DENC); // EncryptedData
+	return true;
 }

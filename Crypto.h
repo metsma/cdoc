@@ -29,7 +29,7 @@ public:
 	static std::vector<uchar> concatKDF(const std::string &hashAlg, uint32_t keyDataLen, const std::vector<uchar> &z,
 		const std::vector<uchar> &AlgorithmID, const std::vector<uchar> &PartyUInfo, const std::vector<uchar> &PartyVInfo);
 	static std::vector<uchar> encrypt(const std::string &method, const Key &key, std::istream &in);
-	static std::vector<uchar> decrypt(const std::string &method, const std::vector<uchar> &key, std::vector<uchar> &data);
+	static std::vector<uchar> decrypt(const std::string &method, const std::vector<uchar> &key, const std::vector<uchar> &data);
 	static std::vector<uchar> decodeBase64(const uchar *data);
 	static std::vector<uchar> deriveSharedSecret(EVP_PKEY *pkey, EVP_PKEY *peerPKey);
 	static Key generateKey(const std::string &method);

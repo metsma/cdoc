@@ -14,7 +14,8 @@ public:
 	void addFile(const std::string &filename, const std::string &mime, const std::vector<unsigned char> &data);
 	void addFile(const std::string &filename, const std::string &mime, const std::string &path);
 	void addRecipient(const std::vector<unsigned char> &recipient);
-	void encrypt();
+	bool encrypt();
+	std::string lastError() const;
 
 private:
 	CDOCWriter(const CDOCWriter &) = delete;
