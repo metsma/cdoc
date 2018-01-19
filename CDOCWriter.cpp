@@ -248,7 +248,7 @@ void CDOCWriter::encrypt()
 			size_t size = file.data.size();
 			if (!file.path.empty())
 			{
-				std::ifstream in(d->files.at(0).path, std::ifstream::binary);
+				std::ifstream in(file.path, std::ifstream::binary);
 				in.seekg(0, std::istream::end);
 				std::istream::pos_type pos = in.tellg();
 				size = pos < 0 ? 0 : (unsigned long)pos;
