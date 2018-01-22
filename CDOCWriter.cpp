@@ -15,13 +15,27 @@
 
 struct CDOCWriter::Private: public XMLWriter
 {
-	class vectorwrapbuf : public std::basic_streambuf<char, std::char_traits<char>> {
+	class vectorwrapbuf : public std::streambuf {
 	public:
 		vectorwrapbuf(std::vector<char> &vec) {
 			setg(vec.data(), vec.data(), vec.data() + vec.size());
 		}
 		vectorwrapbuf(std::vector<uchar> &vec) {
 			setg((char*)vec.data(), (char*)vec.data(), (char*)vec.data() + vec.size());
+		}
+		pos_type seekpos(pos_type sp, std::ios_base::openmode which) override {
+			return seekoff(sp - pos_type(off_type(0)), std::ios_base::beg, which);
+		}
+		pos_type seekoff(off_type off,
+						 std::ios_base::seekdir dir,
+						 std::ios_base::openmode /*which = std::ios_base::in*/) override {
+			switch (dir)
+			{
+			case std::ios_base::cur: gbump(off); break;
+			case std::ios_base::end: setg(eback(), egptr() + off, egptr()); break;
+			case std::ios_base::beg: setg(eback(), eback() + off, egptr()); break;
+			}
+			return gptr() - eback();
 		}
 	};
 
@@ -241,7 +255,21 @@ bool CDOCWriter::encrypt()
 		{
 			DDOCWriter ddoc("");
 			for(const Private::File &file: d->files)
-				ddoc.addFile(file.filename, file.mime, file.data);
+			{
+				if(!file.path.empty())
+				{
+					std::ifstream in(file.path, std::ifstream::binary);
+					in.seekg(0, std::istream::end);
+					std::istream::pos_type pos = in.tellg();
+					std::vector<uchar> data(pos < 0 ? 0 : (unsigned long)pos, 0);
+					in.clear();
+					in.seekg(0);
+					in.read((char*)data.data(), data.size());
+					ddoc.addFile(file.filename, file.mime, data);
+				}
+				else
+					ddoc.addFile(file.filename, file.mime, file.data);
+			}
 			ddoc.close();
 			std::vector<uchar> data = ddoc.data();
 			Private::vectorwrapbuf databuf(data);
