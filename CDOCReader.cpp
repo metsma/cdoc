@@ -179,7 +179,7 @@ std::vector<uchar> CDOCReader::decryptData(const std::vector<uchar> &key)
 			return Crypto::decrypt(d->method, key, reader.readBase64());
 	}
 
-	return std::vector<uchar>();
+	return data;
 }
 
 /**
@@ -188,7 +188,7 @@ std::vector<uchar> CDOCReader::decryptData(const std::vector<uchar> &key)
  */
 std::vector<uchar> CDOCReader::decryptData(Token *token)
 {
-	std::vector<uchar> cert = token->cert();
+	const std::vector<uchar> &cert = token->cert();
 	for(const Private::Key &k: d->keys)
 	{
 		if (k.cert != cert)

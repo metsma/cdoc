@@ -13,8 +13,9 @@
  * @brief CDOCWriter is used for encrypt data.
  */
 
-struct CDOCWriter::Private: public XMLWriter
+class CDOCWriter::Private: public XMLWriter
 {
+public:
 	class vectorwrapbuf : public std::streambuf {
 	public:
 		vectorwrapbuf(std::vector<char> &vec) {
@@ -31,7 +32,7 @@ struct CDOCWriter::Private: public XMLWriter
 						 std::ios_base::openmode /*which = std::ios_base::in*/) override {
 			switch (dir)
 			{
-			case std::ios_base::cur: gbump(off); break;
+			case std::ios_base::cur: gbump(int(off)); break;
 			case std::ios_base::end: setg(eback(), egptr() + off, egptr()); break;
 			case std::ios_base::beg: setg(eback(), eback() + off, egptr()); break;
 			}

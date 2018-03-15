@@ -1,6 +1,6 @@
 #pragma once
 
-#include <CDOCExport.h>
+#include "CDOCExport.h"
 
 #include <string>
 #include <vector>

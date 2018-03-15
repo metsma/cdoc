@@ -1,6 +1,6 @@
 #pragma once
 
-#include <CDOCExport.h>
+#include "CDOCExport.h"
 
 #include <string>
 #include <vector>
@@ -20,6 +20,6 @@ public:
 private:
 	CDOCWriter(const CDOCWriter &) = delete;
 	CDOCWriter &operator=(const CDOCWriter &) = delete;
-	struct Private;
+	class Private;
 	Private *d;
 };

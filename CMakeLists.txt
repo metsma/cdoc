@@ -10,6 +10,7 @@ include(GNUInstallDirs)
 set(SIGNCERT "" CACHE STRING "Common name of certificate to used sign binaries, empty skip signing" )
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED YES)
+set(INSTALL_FRAMEWORKDIR /Library/Frameworks CACHE STRING "Framework install target")
 set(PUBLIC_HEADER Token.h CDOCReader.h CDOCWriter.h ${CMAKE_BINARY_DIR}/CDOCExport.h)
 include_directories(${LIBXML2_INCLUDE_DIR} ${OPENSSL_INCLUDE_DIR} ${CMAKE_BINARY_DIR} ${CMAKE_SOURCE_DIR})
 if(WIN32)
@@ -64,7 +65,7 @@ install(TARGETS cdoc
 	RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 	RESOURCE DESTINATION ${CMAKE_INSTALL_DOCDIR}
 	PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/cdoc
-	FRAMEWORK DESTINATION /Library/Frameworks
+	FRAMEWORK DESTINATION ${INSTALL_FRAMEWORKDIR}
 )
 
 add_executable(cdoc-tool main.cpp)

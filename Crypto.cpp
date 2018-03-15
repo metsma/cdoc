@@ -134,7 +134,7 @@ std::vector<uchar> Crypto::encrypt(const std::string &method, const Key &key, st
 	int sizeIn = 0, sizeTotal = 0;
 	while (in)
 	{
-		in.read(buf.data(), buf.size());
+		in.read(buf.data(), std::streamsize(buf.size()));
 		if (in.gcount() > 0)
 		{
 			EVP_CipherUpdate(ctx.get(), &result[sizeTotal], &sizeIn, (const uchar*)buf.data(), int(in.gcount()));

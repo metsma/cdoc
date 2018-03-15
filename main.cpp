@@ -107,14 +107,13 @@ int main(int argc, char *argv[])
 			token.reset(new WinToken(strcmp(argv[3], "ui") == 0, argv[4]));
 #endif
 		CDOCReader r(toUTF8(argv[5]));
-		std::vector<unsigned char> data = r.decryptData(token.get());
 		if(r.mimeType() == "http://www.sk.ee/DigiDoc/v1.3.0/digidoc.xsd")
 		{
-			for(const DDOCReader::File &file: DDOCReader::files(data))
+			for(const DDOCReader::File &file: DDOCReader::files(r.decryptData(token.get())))
 				writeFile(toUTF8(argv[6]) + "/" + file.name, file.data);
 		}
 		else
-			writeFile(toUTF8(argv[6]) + "/" + r.fileName(), data);
+			writeFile(toUTF8(argv[6]) + "/" + r.fileName(), r.decryptData(token.get()));
 	}
 	else
 	{
