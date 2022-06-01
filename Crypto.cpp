@@ -197,15 +197,15 @@ std::vector<uchar> Crypto::decodeBase64(const uchar *data)
 	if (!data)
 		return result;
 	result.resize(strlen((const char*)data));
-	EVP_ENCODE_CTX ctx;
-	EVP_DecodeInit(&ctx);
+	SCOPE(EVP_ENCODE_CTX, ctx, EVP_ENCODE_CTX_new());
+	EVP_DecodeInit(ctx.get());
 	int size1 = 0, size2 = 0;
-	if(EVP_DecodeUpdate(&ctx, result.data(), &size1, data, int(result.size())) == -1)
+	if(EVP_DecodeUpdate(ctx.get(), result.data(), &size1, data, int(result.size())) == -1)
 	{
 		result.clear();
 		return result;
 	}
-	if(EVP_DecodeFinal(&ctx, result.data(), &size2) == 1)
+	if(EVP_DecodeFinal(ctx.get(), result.data(), &size2) == 1)
 		result.resize(size_t(size1 + size2));
 	else
 		result.clear();
