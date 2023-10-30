@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.2)
+cmake_minimum_required(VERSION 3.16)
 project(cdoc VERSION 0.0.1)
 find_package(Doxygen)
 find_package(LibXml2 REQUIRED)
@@ -11,6 +11,7 @@ set(SIGNCERT "" CACHE STRING "Common name of certificate to used sign binaries, 
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED YES)
 set(INSTALL_FRAMEWORKDIR /Library/Frameworks CACHE STRING "Framework install target")
+set(BUILD_SHARED_LIBS YES CACHE BOOL "Build library as SHARED or STATIC")
 set(PUBLIC_HEADER Token.h CDOCReader.h CDOCWriter.h ${CMAKE_BINARY_DIR}/CDOCExport.h)
 include_directories(${LIBXML2_INCLUDE_DIR} ${OPENSSL_INCLUDE_DIR} ${CMAKE_BINARY_DIR} ${CMAKE_SOURCE_DIR})
 if(WIN32)
@@ -36,7 +37,7 @@ add_library(cdoc_private STATIC
 )
 set_property(TARGET cdoc_private PROPERTY POSITION_INDEPENDENT_CODE ON)
 
-add_library(cdoc SHARED
+add_library(cdoc
 	CDOCReader.cpp
 	CDOCWriter.cpp
 	Token.cpp
@@ -89,11 +90,16 @@ if(SWIG_FOUND AND WIN32)
 endif()
 
 if(APPLE)
-	add_custom_command(TARGET cdoc-tool POST_BUILD
-		COMMAND cp -a $<TARGET_FILE:cdoc-tool> $<TARGET_FILE_DIR:cdoc>/Resources
+	add_custom_command(TARGET cdoc POST_BUILD
+		COMMAND /usr/libexec/PlistBuddy -c "Add :MinimumOSVersion string ${CMAKE_OSX_DEPLOYMENT_TARGET}" $<TARGET_FILE_DIR:cdoc>/Info.plist
 	)
+	#add_custom_command(TARGET cdoc-tool POST_BUILD
+	#	COMMAND mkdir -p $<TARGET_FILE_DIR:cdoc>/Resources
+	#	COMMAND cp -a $<TARGET_FILE:cdoc-tool> $<TARGET_FILE_DIR:cdoc>/Resources/
+	#)
 	if(DOXYGEN_FOUND)
 		add_custom_command(TARGET docs POST_BUILD
+			COMMAND mkdir -p $<TARGET_FILE_DIR:cdoc>/Resources
 			COMMAND cp -a ${CMAKE_BINARY_DIR}/doc/* $<TARGET_FILE_DIR:cdoc>/Resources/
 		)
 	endif()
@@ -106,17 +112,14 @@ if(APPLE)
 			$<TARGET_FILE_DIR:cdoc>/Resources/cdoc-tool
 			$<TARGET_FILE_DIR:cdoc>/../..
 	)
-	if(SIGNCERT)
-		set(PKGEXTRA --sign "Developer ID Installer: ${SIGNCERT}")
-	endif()
 	add_custom_target(pkg DEPENDS cdoc-tool
 		COMMAND make install DESTDIR=install
-		COMMAND pkgbuild --root install ${PKGEXTRA}
+		COMMAND pkgbuild --root install "$<$<BOOL:${SIGNCERT}>:--sign;${SIGNCERT}>"
 			${CMAKE_BINARY_DIR}/cdoc_${PROJECT_VERSION}$ENV{VER_SUFFIX}.pkg
+		COMMAND_EXPAND_LISTS
 	)
 	add_custom_target(debugpkg DEPENDS cdoc-tool
-		COMMAND dsymutil -o cdoc.dSYM $<TARGET_FILE:cdoc>
-		COMMAND dsymutil -o cdoc.dSYM $<TARGET_FILE:cdoc-tool>
+		COMMAND dsymutil -o cdoc.dSYM $<TARGET_FILE:cdoc> $<TARGET_FILE:cdoc-tool>
 		COMMAND zip -r ${CMAKE_BINARY_DIR}/cdoc-dbg_${PROJECT_VERSION}$ENV{VER_SUFFIX}.zip cdoc.dSYM
 	)
 elseif(WIN32)
