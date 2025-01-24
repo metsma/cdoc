@@ -1,25 +1,24 @@
 #pragma once
 
-#include "CDOCExport.h"
+#include "CDOCDefines.h"
 
 #include <string>
-#include <vector>
 
-class CDOC_EXPORT CDOCWriter
+class CDOC_EXPORT SWIFT_NONCOPYABLE CDOCWriter
 {
 public:
 	CDOCWriter(const std::string &file, const std::string &method = "http://www.w3.org/2009/xmlenc11#aes256-gcm");
-	~CDOCWriter();
+	DISABLE_COPY(CDOCWriter)
+	ENABLE_MOVE_D(CDOCWriter)
+	~CDOCWriter() noexcept;
 
-	void addFile(const std::string &filename, const std::string &mime, const std::vector<unsigned char> &data);
+	void addFile(const std::string &filename, const std::string &mime, const CDOCData &data);
 	void addFile(const std::string &filename, const std::string &mime, const std::string &path);
-	void addRecipient(const std::vector<unsigned char> &recipient);
+	void addRecipient(const CDOCData &recipient);
 	bool encrypt();
 	std::string lastError() const;
 
 private:
-	CDOCWriter(const CDOCWriter &) = delete;
-	CDOCWriter &operator=(const CDOCWriter &) = delete;
 	class Private;
-	Private *d;
+	Private *d{};
 };

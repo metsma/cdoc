@@ -136,7 +136,7 @@ CDOCReader::CDOCReader(const std::string &file)
 	}
 }
 
-CDOCReader::~CDOCReader()
+CDOCReader::~CDOCReader() noexcept
 {
 	delete d;
 }
@@ -161,7 +161,7 @@ std::string CDOCReader::fileName() const
  * Returns decrypted data
  * @param key Transport key to used for decrypt data
  */
-std::vector<uchar> CDOCReader::decryptData(const std::vector<uchar> &key)
+CDOCData CDOCReader::decryptData(const CDOCData &key) const
 {
 	XMLReader reader(d->file);
 	std::vector<uchar> data;
@@ -186,7 +186,7 @@ std::vector<uchar> CDOCReader::decryptData(const std::vector<uchar> &key)
  * Returns decrypted data
  * @param token Token to be used for decrypting data
  */
-std::vector<uchar> CDOCReader::decryptData(Token *token)
+CDOCData CDOCReader::decryptData(Token *token) const
 {
 	const std::vector<uchar> &cert = token->cert();
 	for(const Private::Key &k: d->keys)

@@ -1,71 +1,69 @@
 #pragma once
 
-#include "CDOCExport.h"
+#include "CDOCDefines.h"
 
 #include <string>
 #include <vector>
 
-typedef unsigned char uchar;
-#define DISABLE_COPY(Class) \
-	Class(const Class &) = delete; \
-	Class &operator=(const Class &) = delete
-
-class CDOC_EXPORT Token
+class CDOC_EXPORT SWIFT_NONCOPYABLE Token
 {
 public:
-	virtual ~Token();
-	virtual std::vector<uchar> cert() const = 0;
-	virtual std::vector<uchar> decrypt(const std::vector<uchar> &data) const = 0;
-	virtual std::vector<uchar> derive(const std::vector<uchar> &publicKey) const;
-	virtual std::vector<uchar> deriveConcatKDF(const std::vector<uchar> &publicKey, const std::string &digest, unsigned int keySize,
-		const std::vector<uchar> &algorithmID, const std::vector<uchar> &partyUInfo, const std::vector<uchar> &partyVInfo) const;
+	DISABLE_COPY(Token)
+	ENABLE_MOVE(Token)
+	virtual ~Token() noexcept;
+	virtual CDOCData cert() const = 0;
+	virtual CDOCData decrypt(const CDOCData &data) const = 0;
+	virtual CDOCData derive(const CDOCData &publicKey) const;
+	virtual CDOCData deriveConcatKDF(const CDOCData &publicKey, const std::string &digest, unsigned int keySize,
+		const CDOCData &algorithmID, const CDOCData &partyUInfo, const CDOCData &partyVInfo) const;
 protected:
 	Token();
-private:
-	DISABLE_COPY(Token);
 };
 
-class CDOC_EXPORT PKCS11Token: public Token
+class CDOC_EXPORT SWIFT_NONCOPYABLE PKCS11Token: public Token
 {
 public:
 	PKCS11Token(const std::string &path, const std::string &password);
-	~PKCS11Token();
-	virtual std::vector<uchar> cert() const override;
-	std::vector<uchar> decrypt(const std::vector<uchar> &data) const override;
-	std::vector<uchar> derive(const std::vector<uchar> &publicKey) const override;
+	DISABLE_COPY(PKCS11Token)
+	ENABLE_MOVE_D(PKCS11Token)
+	~PKCS11Token() noexcept;
+	virtual CDOCData cert() const override;
+	CDOCData decrypt(const CDOCData &data) const override;
+	CDOCData derive(const CDOCData &publicKey) const override;
 private:
-	DISABLE_COPY(PKCS11Token);
 	class Private;
-	Private *d;
+	Private *d{};
 };
 
-class CDOC_EXPORT PKCS12Token: public Token
+class CDOC_EXPORT SWIFT_NONCOPYABLE PKCS12Token: public Token
 {
 public:
 	PKCS12Token(const std::string &path, const std::string &password);
-	~PKCS12Token();
-	virtual std::vector<uchar> cert() const override;
-	std::vector<uchar> decrypt(const std::vector<uchar> &data) const override;
-	std::vector<uchar> derive(const std::vector<uchar> &publicKey) const override;
+	DISABLE_COPY(PKCS12Token)
+	ENABLE_MOVE_D(PKCS12Token)
+	~PKCS12Token() noexcept;
+	virtual CDOCData cert() const override;
+	CDOCData decrypt(const CDOCData &data) const override;
+	CDOCData derive(const CDOCData &publicKey) const override;
 private:
-	DISABLE_COPY(PKCS12Token);
 	class Private;
-	Private *d;
+	Private *d{};
 };
 
 #ifdef _WIN32
-class CDOC_EXPORT WinToken: public Token
+class CDOC_EXPORT SWIFT_NONCOPYABLE WinToken: public Token
 {
 public:
 	WinToken(bool ui, const std::string &pass);
-	~WinToken();
-	virtual std::vector<uchar> cert() const override;
-	std::vector<uchar> decrypt(const std::vector<uchar> &data) const override;
-	std::vector<uchar> deriveConcatKDF(const std::vector<uchar> &publicKey, const std::string &digest, unsigned int keySize,
-		const std::vector<uchar> &algorithmID, const std::vector<uchar> &partyUInfo, const std::vector<uchar> &partyVInfo) const override;
+	DISABLE_COPY(WinToken)
+	ENABLE_MOVE_D(WinToken)
+	~WinToken() noexcept;
+	virtual CDOCData cert() const override;
+	CDOCData decrypt(const CDOCData &data) const override;
+	CDOCData deriveConcatKDF(const CDOCData &publicKey, const std::string &digest, unsigned int keySize,
+		const CDOCData &algorithmID, const CDOCData &partyUInfo, const CDOCData &partyVInfo) const override;
 private:
-	DISABLE_COPY(WinToken);
 	class Private;
-	Private *d;
+	Private *d{};
 };
 #endif

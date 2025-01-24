@@ -8,16 +8,11 @@ include(GenerateExportHeader)
 include(GNUInstallDirs)
 
 set(SIGNCERT "" CACHE STRING "Common name of certificate to used sign binaries, empty skip signing" )
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED YES)
 set(INSTALL_FRAMEWORKDIR /Library/Frameworks CACHE STRING "Framework install target")
 set(BUILD_SHARED_LIBS YES CACHE BOOL "Build library as SHARED or STATIC")
-set(PUBLIC_HEADER Token.h CDOCReader.h CDOCWriter.h ${CMAKE_BINARY_DIR}/CDOCExport.h)
-include_directories(${LIBXML2_INCLUDE_DIR} ${OPENSSL_INCLUDE_DIR} ${CMAKE_BINARY_DIR} ${CMAKE_SOURCE_DIR})
-if(WIN32)
-	add_definitions(-DUNICODE -DWIN32_LEAN_AND_MEAN)
-	list(APPEND LIBS Crypt32 NCrypt cryptui)
-endif()
+set(PUBLIC_HEADER CDOCDefines.h Token.h CDOCReader.h CDOCWriter.h ${CMAKE_BINARY_DIR}/CDOCExport.h)
 
 if(DOXYGEN_FOUND)
 	configure_file(${CMAKE_SOURCE_DIR}/Doxyfile.in Doxyfile @ONLY)
@@ -36,6 +31,9 @@ add_library(cdoc_private STATIC
 	XMLWriter.cpp
 )
 set_property(TARGET cdoc_private PROPERTY POSITION_INDEPENDENT_CODE ON)
+target_compile_definitions(cdoc_private PUBLIC $<$<PLATFORM_ID:Windows>:UNICODE;WIN32_LEAN_AND_MEAN>)
+target_include_directories(cdoc_private PUBLIC ${CMAKE_BINARY_DIR})
+target_link_libraries(cdoc_private LibXml2::LibXml2 OpenSSL::Crypto)
 
 add_library(cdoc
 	CDOCReader.cpp
@@ -59,7 +57,7 @@ set_target_properties(cdoc PROPERTIES
 	VISIBILITY_INLINES_HIDDEN YES
 )
 generate_export_header(cdoc EXPORT_FILE_NAME CDOCExport.h)
-target_link_libraries(cdoc cdoc_private ${LIBXML2_LIBRARIES} ${OPENSSL_CRYPTO_LIBRARY} ${LIBS})
+target_link_libraries(cdoc cdoc_private $<$<PLATFORM_ID:Windows>:Crypt32;NCrypt;cryptui>)
 install(TARGETS cdoc
 	LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
 	ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
@@ -90,6 +88,16 @@ if(SWIG_FOUND AND WIN32)
 endif()
 
 if(APPLE)
+	set(MODULE_MAP ${CMAKE_BINARY_DIR}/module.modulemap)
+	file(WRITE ${MODULE_MAP} "framework module cdoc {
+  header \"Token.h\"
+  header \"CdocReader.h\"
+  header \"CdocWriter.h\"
+  export *
+  requires cplusplus
+}")
+	target_sources(cdoc PRIVATE ${MODULE_MAP})
+	set_source_files_properties(${MODULE_MAP} PROPERTIES MACOSX_PACKAGE_LOCATION Modules)
 	add_custom_command(TARGET cdoc POST_BUILD
 		COMMAND /usr/libexec/PlistBuddy -c "Add :MinimumOSVersion string ${CMAKE_OSX_DEPLOYMENT_TARGET}" $<TARGET_FILE_DIR:cdoc>/Info.plist
 	)

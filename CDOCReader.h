@@ -1,25 +1,24 @@
 #pragma once
 
-#include "CDOCExport.h"
+#include "CDOCDefines.h"
 
 #include <string>
-#include <vector>
 
 class Token;
-class CDOC_EXPORT CDOCReader
+class CDOC_EXPORT SWIFT_NONCOPYABLE CDOCReader
 {
 public:
 	CDOCReader(const std::string &file);
-	~CDOCReader();
+	DISABLE_COPY(CDOCReader)
+	ENABLE_MOVE_D(CDOCReader)
+	~CDOCReader() noexcept;
 
 	std::string mimeType() const;
 	std::string fileName() const;
-	std::vector<unsigned char> decryptData(const std::vector<unsigned char> &key);
-	std::vector<unsigned char> decryptData(Token *token);
+	CDOCData decryptData(const CDOCData &key) const;
+	CDOCData decryptData(Token *token) const;
 
 private:
-	CDOCReader(const CDOCReader &) = delete;
-	CDOCReader &operator=(const CDOCReader &) = delete;
 	class Private;
-	Private *d;
+	Private *d{};
 };

@@ -20,7 +20,7 @@
  */
 
 Token::Token() = default;
-Token::~Token() = default;
+Token::~Token() noexcept = default;
 
 /**
  * @fn Token::cert
@@ -180,7 +180,7 @@ PKCS11Token::PKCS11Token(const std::string &path, const std::string &password)
 	}
 }
 
-PKCS11Token::~PKCS11Token()
+PKCS11Token::~PKCS11Token() noexcept
 {
 	if(d->f)
 	{
@@ -289,7 +289,7 @@ PKCS12Token::PKCS12Token(const std::string &path, const std::string &password)
 	d->cert.reset(cert);
 }
 
-PKCS12Token::~PKCS12Token()
+PKCS12Token::~PKCS12Token() noexcept
 {
 	delete d;
 }
@@ -474,7 +474,7 @@ WinToken::WinToken(bool ui, const std::string &pass)
 		d->cert = cert;
 }
 
-WinToken::~WinToken()
+WinToken::~WinToken() noexcept
 {
 	switch(d->spec)
 	{

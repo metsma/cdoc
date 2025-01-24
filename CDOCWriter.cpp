@@ -72,7 +72,7 @@ CDOCWriter::CDOCWriter(const std::string &file, const std::string &method)
 	d->transportKey = Crypto::generateKey(d->method = method);
 }
 
-CDOCWriter::~CDOCWriter()
+CDOCWriter::~CDOCWriter() noexcept
 {
 	delete d;
 }
@@ -126,7 +126,7 @@ bool CDOCWriter::Private::writeRecipient(const std::vector<uchar> &recipient)
 		X509_NAME *name = X509_get_subject_name(peerCert.get());
 		if(!name)
 			return cn;
-		int pos = X509_NAME_get_index_by_NID(name, NID_commonName, 0);
+		int pos = X509_NAME_get_index_by_NID(name, NID_commonName, -1);
 		if(pos == -1)
 			return cn;
 		X509_NAME_ENTRY *e = X509_NAME_get_entry(name, pos);
