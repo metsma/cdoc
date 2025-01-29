@@ -83,7 +83,7 @@ CDOCWriter::~CDOCWriter()
  * @param data Content of encrypted file
  */
 void CDOCWriter::addFile(const std::string &filename,
-	const std::string &mime, const std::vector<uchar> &data)
+	const std::string &mime, std::vector<uchar> &&data)
 {
 	d->files.push_back({ filename, mime, std::string(), data });
 }
@@ -103,7 +103,7 @@ void CDOCWriter::addFile(const std::string &filename,
  * Add X509 certificate recipient
  * @param recipient DER certificate to encrypted for
  */
-void CDOCWriter::addRecipient(const std::vector<uchar> &recipient)
+void CDOCWriter::addRecipient(std::vector<uchar> &&recipient)
 {
 	d->recipients.push_back(recipient);
 }
@@ -265,7 +265,7 @@ bool CDOCWriter::encrypt()
 					std::vector<uchar> data(pos < 0 ? 0 : (unsigned long)pos, 0);
 					in.clear();
 					in.seekg(0);
-					in.read((char*)data.data(), data.size());
+					in.read((char*)data.data(), std::streamsize(data.size()));
 					ddoc.addFile(file.filename, file.mime, data);
 				}
 				else

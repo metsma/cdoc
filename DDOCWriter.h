@@ -8,7 +8,7 @@ class DDOCWriter: public XMLWriter
 {
 public:
 	DDOCWriter(const std::string &file);
-	~DDOCWriter();
+	~DDOCWriter() final;
 
 	void addFile(const std::string &name, const std::string &mime, const std::vector<unsigned char> &data);
 	void close() override;

@@ -6,8 +6,8 @@
 
 #include <algorithm>
 
-typedef xmlChar *pxmlChar;
-typedef const xmlChar *pcxmlChar;
+using pxmlChar = xmlChar *;
+using pcxmlChar = const xmlChar *;
 
 struct XMLWriter::Private
 {
@@ -65,8 +65,8 @@ void XMLWriter::writeStartElement(const NS &ns, const std::string &name, const s
 		return;
 	xmlTextWriterStartElementNS(d->w, ns.prefix.empty() ? nullptr : pcxmlChar(ns.prefix.c_str()),
 		pcxmlChar(name.c_str()), pos->second > 1 ? nullptr : pcxmlChar(ns.ns.c_str()));
-	for(auto i = attr.cbegin(), end = attr.cend(); i != end; ++i)
-		xmlTextWriterWriteAttribute(d->w, pcxmlChar(i->first.c_str()), pcxmlChar(i->second.c_str()));
+	for(const auto &i: attr)
+		xmlTextWriterWriteAttribute(d->w, pcxmlChar(i.first.c_str()), pcxmlChar(i.second.c_str()));
 }
 
 void XMLWriter::writeEndElement(const NS &ns)
@@ -103,7 +103,7 @@ void XMLWriter::writeBase64Element(const NS &ns, const std::string &name, const 
 	for (size_t i = 0; i < data.size(); i += bufLen)
 	{
 		std::string b64 = Crypto::toBase64(&data[i], std::min<size_t>(data.size() - i, bufLen));
-		xmlTextWriterWriteRaw(d->w, (const xmlChar*)b64.c_str());
+		xmlTextWriterWriteRaw(d->w, pcxmlChar(b64.c_str()));
 	}
 	writeEndElement(ns);
 }

@@ -156,12 +156,11 @@ std::vector<uchar> Crypto::encrypt(const std::string &method, const Key &key, st
 	return result;
 }
 
-std::vector<uchar> Crypto::decrypt(const std::string &method, const std::vector<uchar> &key, const std::vector<uchar> &data)
+std::vector<uchar> Crypto::decrypt(const std::string &method, const std::vector<uchar> &key, std::vector<uchar> &&data)
 {
 	const EVP_CIPHER *cipher = Crypto::cipher(method);
-	size_t dataSize = data.size();
 	std::vector<uchar> iv(data.cbegin(), data.cbegin() + EVP_CIPHER_iv_length(cipher));
-	dataSize -= iv.size();
+	data.erase(data.cbegin(), data.cbegin() + long(iv.size()));
 
 #ifndef NDEBUG
 	printf("iv %s\n", Crypto::toHex(iv).c_str());
@@ -175,15 +174,15 @@ std::vector<uchar> Crypto::decrypt(const std::string &method, const std::vector<
 	{
 		std::vector<uchar> tag(data.cend() - 16, data.cend());
 		EVP_CIPHER_CTX_ctrl(ctx.get(), EVP_CTRL_GCM_SET_TAG, int(tag.size()), tag.data());
-		dataSize -= tag.size();
+		data.resize(data.size() - tag.size());
 #ifndef NDEBUG
 		printf("GCM TAG %s\n", Crypto::toHex(tag).c_str());
 #endif
 	}
 
 	int size = 0;
-	std::vector<uchar> result(dataSize + size_t(EVP_CIPHER_CTX_block_size(ctx.get())), 0);
-	err = EVP_CipherUpdate(ctx.get(), result.data(), &size, &data[iv.size()], int(dataSize));
+	std::vector<uchar> result(data.size() + size_t(EVP_CIPHER_CTX_block_size(ctx.get())), 0);
+	err = EVP_CipherUpdate(ctx.get(), result.data(), &size, &data[iv.size()], int(data.size()));
 
 	int size2 = 0;
 	err = EVP_CipherFinal(ctx.get(), result.data() + size, &size2);

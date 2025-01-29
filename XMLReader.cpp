@@ -4,8 +4,8 @@
 
 #include <libxml/xmlreader.h>
 
-typedef xmlChar *pxmlChar;
-typedef const xmlChar *pcxmlChar;
+using pxmlChar = xmlChar *;
+using pcxmlChar = const xmlChar *;
 
 struct XMLReader::Private
 {

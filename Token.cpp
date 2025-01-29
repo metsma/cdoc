@@ -98,7 +98,7 @@ public:
 	std::vector<uchar> attribute(CK_OBJECT_HANDLE obj, CK_ATTRIBUTE_TYPE type)
 	{
 		std::vector<uchar> data;
-		CK_ATTRIBUTE attr = { type, 0, 0 };
+		CK_ATTRIBUTE attr = { type, nullptr, 0 };
 		if(f->C_GetAttributeValue(session, obj, &attr, 1) != CKR_OK)
 			return data;
 		data.resize(attr.ulValueLen, 0);
@@ -141,7 +141,7 @@ PKCS11Token::PKCS11Token(const std::string &path, const std::string &password)
 	if(!l || l(&d->f) != CKR_OK || !d->f)
 		return;
 
-	CK_C_INITIALIZE_ARGS init_args = { 0, 0, 0, 0, CKF_OS_LOCKING_OK, 0 };
+	CK_C_INITIALIZE_ARGS init_args = { nullptr, nullptr, nullptr, nullptr, CKF_OS_LOCKING_OK, nullptr };
 	d->f->C_Initialize(&init_args);
 
 	CK_ULONG size = 0;
@@ -213,12 +213,12 @@ std::vector<uchar> PKCS11Token::decrypt(const std::vector<uchar> &data) const
 	if(key.size() != 1)
 		return result;
 
-	CK_MECHANISM mech = { CKM_RSA_PKCS, 0, 0 };
+	CK_MECHANISM mech = { CKM_RSA_PKCS, nullptr, 0 };
 	if(d->f->C_DecryptInit(d->session, &mech, key[0]) != CKR_OK)
 		return result;
 
 	CK_ULONG size = 0;
-	if(d->f->C_Decrypt(d->session, CK_CHAR_PTR(data.data()), CK_ULONG(data.size()), 0, &size) != CKR_OK)
+	if(d->f->C_Decrypt(d->session, CK_CHAR_PTR(data.data()), CK_ULONG(data.size()), nullptr, &size) != CKR_OK)
 		return result;
 
 	result.resize(size);
@@ -279,7 +279,7 @@ PKCS12Token::PKCS12Token(const std::string &path, const std::string &password)
 	OpenSSL_add_all_ciphers();
 	OpenSSL_add_all_digests();
 	SCOPE(BIO, bio, BIO_new_file(path.c_str(), "rb"));
-	SCOPE(PKCS12, p12, d2i_PKCS12_bio(bio.get(), 0));
+	SCOPE(PKCS12, p12, d2i_PKCS12_bio(bio.get(), nullptr));
 	d->pass = password;
 
 	EVP_PKEY *pkey = nullptr;

@@ -49,7 +49,7 @@ CDOCReader::CDOCReader(const std::string &file)
 		{
 			data[0] = *(i++);
 			data[1] = *(i++);
-			out.push_back(static_cast<uchar>(strtoul(data, 0, 16)));
+			out.push_back(static_cast<uchar>(strtoul(data, nullptr, 16)));
 		}
 		if(out[0] == 0x00)
 			out.erase(out.cbegin());

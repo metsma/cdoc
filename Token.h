@@ -5,7 +5,7 @@
 #include <string>
 #include <vector>
 
-typedef unsigned char uchar;
+using uchar = unsigned char;
 #define DISABLE_COPY(Class) \
 	Class(const Class &) = delete; \
 	Class &operator=(const Class &) = delete
@@ -29,7 +29,7 @@ class CDOC_EXPORT PKCS11Token: public Token
 {
 public:
 	PKCS11Token(const std::string &path, const std::string &password);
-	~PKCS11Token();
+	~PKCS11Token() final;
 	virtual std::vector<uchar> cert() const override;
 	std::vector<uchar> decrypt(const std::vector<uchar> &data) const override;
 	std::vector<uchar> derive(const std::vector<uchar> &publicKey) const override;
@@ -43,7 +43,7 @@ class CDOC_EXPORT PKCS12Token: public Token
 {
 public:
 	PKCS12Token(const std::string &path, const std::string &password);
-	~PKCS12Token();
+	~PKCS12Token() final;
 	virtual std::vector<uchar> cert() const override;
 	std::vector<uchar> decrypt(const std::vector<uchar> &data) const override;
 	std::vector<uchar> derive(const std::vector<uchar> &publicKey) const override;
@@ -58,7 +58,7 @@ class CDOC_EXPORT WinToken: public Token
 {
 public:
 	WinToken(bool ui, const std::string &pass);
-	~WinToken();
+	~WinToken() final;
 	virtual std::vector<uchar> cert() const override;
 	std::vector<uchar> decrypt(const std::vector<uchar> &data) const override;
 	std::vector<uchar> deriveConcatKDF(const std::vector<uchar> &publicKey, const std::string &digest, unsigned int keySize,
