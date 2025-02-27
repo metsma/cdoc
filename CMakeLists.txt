@@ -42,6 +42,15 @@ add_library(cdoc
 	${PUBLIC_HEADER}
 	${RESOURCE_FILES}
 )
+if(NOT BUILD_SHARED_LIBS)
+	target_sources(cdoc PRIVATE
+		Crypto.cpp
+		DDOCReader.cpp
+		DDOCWriter.cpp
+		XMLReader.cpp
+		XMLWriter.cpp
+	)
+endif()
 set_target_properties(cdoc PROPERTIES
 	VERSION ${PROJECT_VERSION}
 	SOVERSION 0
